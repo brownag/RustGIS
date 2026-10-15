@@ -1,5 +1,6 @@
 //! The layer stagers: turn host data into the layers a script is given.
 
+use crate::job::check_layer_size;
 use crate::wire::{MAX_FILE_BYTES, RLayerInput, RLayerKind};
 use rustgis_data::raster::Raster;
 use rustgis_data::{Dataset, GeometryType, io, source::fgb};
@@ -14,18 +15,18 @@ pub struct StagedLayer {
 /// Stages a dataset as a layer: features as FlatGeobuf, a table with no geometry as CSV.
 /// `selection` holds host rows counted from 0; only the staged ones are kept.
 pub fn stage_dataset(ds: &Dataset, selection: &[usize]) -> Result<StagedLayer, String> {
-    let (kind, format, data, staged_rows): (RLayerKind, &str, Vec<u8>, Vec<usize>) = if ds.geometry_type == GeometryType::None {
+    let (kind, data, staged_rows): (RLayerKind, Vec<u8>, Vec<usize>) = if ds.geometry_type == GeometryType::None {
         let text = io::to_csv(ds).map_err(|e| format!("layer '{}' could not be staged: {e}", ds.name))?;
-        (RLayerKind::Table, "csv", text.into_bytes(), (0..ds.features.len()).collect())
+        (RLayerKind::Table, text.into_bytes(), (0..ds.features.len()).collect())
     } else {
         let bytes = fgb::write(ds).map_err(|e| format!("layer '{}' could not be staged: {e}", ds.name))?;
         // Features without a geometry are not written (see `fgb::write`).
         let rows = ds.features.iter().enumerate().filter(|(_, f)| f.geometry.is_some()).map(|(i, _)| i).collect();
-        (RLayerKind::Vector, "fgb", bytes, rows)
+        (RLayerKind::Vector, bytes, rows)
     };
     check_layer_size(&ds.name, data.len(), MAX_FILE_BYTES)?;
     let (selection, read_rows) = map_selection(selection, &staged_rows);
-    let layer = RLayerInput { name: ds.name.clone(), format: format.into(), data, kind, selection };
+    let layer = RLayerInput { name: ds.name.clone(), data, kind, selection };
     Ok(StagedLayer { layer, read_rows })
 }
 
@@ -37,7 +38,7 @@ pub fn stage_raster(name: &str, original: Option<(&str, &[u8])>, raster: &Raster
         _ => rustgis_data::raster::geotiff::write(raster, 0).map_err(|e| format!("layer '{name}' could not be staged: {e}"))?,
     };
     check_layer_size(name, data.len(), MAX_FILE_BYTES)?;
-    let layer = RLayerInput { name: name.into(), format: "tif".into(), data, kind: RLayerKind::Raster, selection: Vec::new() };
+    let layer = RLayerInput { name: name.into(), data, kind: RLayerKind::Raster, selection: Vec::new() };
     Ok(StagedLayer { layer, read_rows: Vec::new() })
 }
 
@@ -45,11 +46,6 @@ pub fn stage_raster(name: &str, original: Option<(&str, &[u8])>, raster: &Raster
 fn is_tiff_name(file_name: &str) -> bool {
     let lower = file_name.to_ascii_lowercase();
     lower.ends_with(".tif") || lower.ends_with(".tiff")
-}
-
-/// Fails when a staged layer is larger than `cap` bytes.
-pub(crate) fn check_layer_size(name: &str, len: usize, cap: usize) -> Result<(), String> {
-    if len > cap { Err(format!("layer '{name}' is too large to send to R")) } else { Ok(()) }
 }
 
 /// Maps a host selection to the staged layer. `staged_rows` is sorted. Returns the positions of

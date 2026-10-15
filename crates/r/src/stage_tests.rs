@@ -1,5 +1,6 @@
 // Layer stager tests.
-use crate::stage::{check_layer_size, stage_dataset, stage_raster};
+use crate::job::check_layer_size;
+use crate::stage::{stage_dataset, stage_raster};
 use crate::wire::RLayerKind;
 use rustgis_data::raster::{ColorHint, Crs, GeoTransform, Raster};
 use rustgis_data::{Coord, Dataset, Feature, Field, FieldType, Geometry, GeometryType, Value, io};
@@ -33,7 +34,7 @@ fn small_raster() -> Result<Raster, Box<dyn std::error::Error>> {
 fn point_dataset_stages_as_fgb_and_reads_back() -> TestResult {
     let layer = stage_dataset(&point_dataset(), &[])?.layer;
     assert_eq!(layer.kind, RLayerKind::Vector);
-    assert_eq!(layer.format, "fgb");
+    assert_eq!(layer.kind.format(), "fgb");
     assert_eq!(layer.name, "Cities");
     let (back, _) = io::read_bytes("cities.fgb", &layer.data)?;
     assert_eq!(back.features.len(), 3);
@@ -49,7 +50,7 @@ fn polygon_dataset_stages_as_fgb_and_reads_back() -> TestResult {
         f.geometry = Some(Geometry::Polygon(vec![vec![ring.clone()]]));
     }
     let layer = stage_dataset(&ds, &[])?.layer;
-    assert_eq!(layer.format, "fgb");
+    assert_eq!(layer.kind.format(), "fgb");
     let (back, _) = io::read_bytes("areas.fgb", &layer.data)?;
     assert_eq!(back.features.len(), 3);
     Ok(())
@@ -64,7 +65,7 @@ fn geometryless_dataset_stages_as_csv_with_header() -> TestResult {
     }
     let staged = stage_dataset(&ds, &[])?;
     assert_eq!(staged.layer.kind, RLayerKind::Table);
-    assert_eq!(staged.layer.format, "csv");
+    assert_eq!(staged.layer.kind.format(), "csv");
     let text = String::from_utf8(staged.layer.data)?;
     assert_eq!(text.lines().next(), Some("name"));
     Ok(())
@@ -108,7 +109,7 @@ fn selection_positions_skip_features_without_geometry() -> TestResult {
 
 #[test]
 fn layer_size_check_uses_the_cap_given() {
-    assert_eq!(check_layer_size("Big", 11, 10), Err("layer 'Big' is too large to send to R".to_string()));
+    assert_eq!(check_layer_size("Big", 11, 10), Err("layer 'Big' is too large to send to R (10-byte limit)".to_string()));
     assert!(check_layer_size("Ok", 10, 10).is_ok());
 }
 
@@ -118,7 +119,7 @@ fn raster_keeps_an_original_tif() -> TestResult {
     let original = b"II*\0original".to_vec();
     let layer = stage_raster("Dem", Some(("dem.TIF", &original)), &raster)?.layer;
     assert_eq!(layer.kind, RLayerKind::Raster);
-    assert_eq!(layer.format, "tif");
+    assert_eq!(layer.kind.format(), "tif");
     assert_eq!(layer.data, original);
     Ok(())
 }

@@ -39,12 +39,21 @@ pub enum RLayerKind {
     Raster,
 }
 
-/// A layer handed to a script: its name, its format and its bytes.
+impl RLayerKind {
+    /// The file format a layer of this kind is sent in: `fgb`, `csv` or `tif`.
+    pub fn format(self) -> &'static str {
+        match self {
+            RLayerKind::Vector => "fgb",
+            RLayerKind::Table => "csv",
+            RLayerKind::Raster => "tif",
+        }
+    }
+}
+
+/// A layer handed to a script: its name, its kind and its bytes.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct RLayerInput {
     pub name: String,
-    /// `fgb`, `csv` or `tif`.
-    pub format: String,
     pub data: Vec<u8>,
     #[serde(default)]
     pub kind: RLayerKind,

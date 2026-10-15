@@ -36,14 +36,14 @@ pub fn build_job_files(input: &RExecutionInput) -> Result<Vec<RFile>, String> {
     let mut inputs = Vec::with_capacity(input.layers.len());
     for (index, layer) in input.layers.iter().enumerate() {
         check_layer_size(&layer.name, layer.data.len(), MAX_FILE_BYTES)?;
-        let ext = ext_for(layer.kind, &layer.format)?;
+        let format = layer.kind.format();
         let selection = selection_rows(&layer.selection)?;
-        let file = format!("in/{index}.{ext}");
+        let file = format!("in/{index}.{format}");
         inputs.push(json!({
             "index": index,
             "name": layer.name,
             "kind": kind_name(layer.kind),
-            "format": layer.format,
+            "format": format,
             "file": file,
             "selection": selection,
         }));
@@ -93,25 +93,10 @@ fn kind_name(kind: RLayerKind) -> &'static str {
     }
 }
 
-/// The file extension for a layer: `fgb` for vectors, `csv` for tables, `tif` for rasters. A
-/// format that does not match the kind, or is not one of the three, is an error.
-fn ext_for(kind: RLayerKind, format: &str) -> Result<&'static str, String> {
-    let expected = match kind {
-        RLayerKind::Vector => "fgb",
-        RLayerKind::Table => "csv",
-        RLayerKind::Raster => "tif",
-    };
-    match format {
-        "fgb" | "csv" | "tif" if format == expected => Ok(expected),
-        "fgb" | "csv" | "tif" => Err(format!("a {} layer needs the format {expected}, not {format}", kind_name(kind))),
-        _ => Err(format!("unknown layer format {format}; use fgb, csv or tif")),
-    }
-}
-
 /// Refuses a layer larger than `cap` bytes.
 pub(crate) fn check_layer_size(name: &str, len: usize, cap: usize) -> Result<(), String> {
     if len > cap {
-        return Err(format!("layer {name} is larger than the {cap}-byte limit"));
+        return Err(format!("layer '{name}' is too large to send to R ({cap}-byte limit)"));
     }
     Ok(())
 }

@@ -5,7 +5,7 @@ type TestResult = Result<(), Box<dyn std::error::Error>>;
 fn sample_input() -> RExecutionInput {
     RExecutionInput {
         script: "1 + 1".into(),
-        layers: vec![RLayerInput { name: "Cities".into(), format: "geojson".into(), data: b"{}".to_vec(), ..Default::default() }],
+        layers: vec![RLayerInput { name: "Cities".into(), data: b"{}".to_vec(), ..Default::default() }],
         args: serde_json::json!({ "k": 3 }),
         ..Default::default()
     }
@@ -155,7 +155,6 @@ fn new_fields_round_trip() -> TestResult {
         script: "1".into(),
         layers: vec![RLayerInput {
             name: "t".into(),
-            format: "csv".into(),
             data: b"a\n1".to_vec(),
             kind: RLayerKind::Table,
             selection: vec![1, 5],

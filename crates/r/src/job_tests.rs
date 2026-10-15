@@ -12,14 +12,12 @@ fn sample_input() -> RExecutionInput {
         layers: vec![
             RLayerInput {
                 name: "Cities".into(),
-                format: "fgb".into(),
                 data: b"fgb-bytes".to_vec(),
                 kind: RLayerKind::Vector,
                 selection: vec![4, 0, 4],
             },
             RLayerInput {
                 name: "Stats".into(),
-                format: "csv".into(),
                 data: b"a,b\n1,2\n".to_vec(),
                 kind: RLayerKind::Table,
                 selection: vec![],
@@ -43,10 +41,10 @@ fn error_of(input: &RExecutionInput) -> Result<String, Box<dyn std::error::Error
     build_job_files(input).err().ok_or_else(|| "expected an error".into())
 }
 
-fn one_layer(name: &str, format: &str, kind: RLayerKind) -> RExecutionInput {
+fn one_layer(name: &str, kind: RLayerKind) -> RExecutionInput {
     RExecutionInput {
         script: "1".into(),
-        layers: vec![RLayerInput { name: name.into(), format: format.into(), kind, ..Default::default() }],
+        layers: vec![RLayerInput { name: name.into(), kind, ..Default::default() }],
         ..Default::default()
     }
 }
@@ -161,7 +159,7 @@ fn oversize_script_is_refused() -> TestResult {
 #[test]
 fn too_many_layers_are_refused() -> TestResult {
     let mut input = sample_input();
-    input.layers = (0..=MAX_FILES).map(|_| RLayerInput { format: "csv".into(), kind: RLayerKind::Table, ..Default::default() }).collect();
+    input.layers = (0..=MAX_FILES).map(|_| RLayerInput { kind: RLayerKind::Table, ..Default::default() }).collect();
     assert!(error_of(&input)?.contains("layers"));
     input.layers.truncate(MAX_FILES);
     assert!(build_job_files(&input).is_ok());
@@ -169,16 +167,12 @@ fn too_many_layers_are_refused() -> TestResult {
 }
 
 #[test]
-fn kind_and_format_must_agree() -> TestResult {
-    assert!(error_of(&one_layer("A", "csv", RLayerKind::Vector))?.contains("needs the format fgb"));
-    assert!(error_of(&one_layer("A", "fgb", RLayerKind::Table))?.contains("needs the format csv"));
-    assert!(error_of(&one_layer("A", "fgb", RLayerKind::Raster))?.contains("needs the format tif"));
-    Ok(())
-}
-
-#[test]
-fn unknown_format_is_refused() -> TestResult {
-    assert!(error_of(&one_layer("A", "geojson", RLayerKind::Vector))?.contains("unknown layer format"));
+fn params_format_follows_the_kind() -> TestResult {
+    for (kind, format) in [(RLayerKind::Vector, "fgb"), (RLayerKind::Table, "csv"), (RLayerKind::Raster, "tif")] {
+        let files = build_job_files(&one_layer("A", kind))?;
+        assert_eq!(params_of(&files)?["inputs"][0]["format"], format);
+        assert!(files.iter().any(|f| f.path == format!("in/0.{format}")));
+    }
     Ok(())
 }
 
@@ -186,7 +180,7 @@ fn unknown_format_is_refused() -> TestResult {
 fn hostile_layer_names_never_reach_a_path() -> TestResult {
     let names = ["../../etc".to_string(), String::new(), "数据層 🗺".to_string(), "x".repeat(10 * 1024)];
     for name in names {
-        let files = build_job_files(&one_layer(&name, "fgb", RLayerKind::Vector))?;
+        let files = build_job_files(&one_layer(&name, RLayerKind::Vector))?;
         let paths: Vec<&str> = files.iter().map(|f| f.path.as_str()).collect();
         assert_eq!(paths, ["script.R", "bootstrap.R", "params.json", "in/0.fgb"]);
         assert!(job_paths_ok(&files));
