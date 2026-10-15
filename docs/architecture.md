@@ -30,8 +30,9 @@ step. While they run, they reach the session only through permission-checked req
 
 Work that runs outside the command call uses one asynchronous path, shared by GeoLibre and R. A
 run starts, a runner completes it, and `gp.finish` applies the result to the project once, as one
-undo step. Runs share one queue, and R runs are queued one at a time. `gp.runR` validates its
-parameters but refuses on every host until the R runner lands, so R scripts cannot run yet.
+undo step. Runs share one queue, and R runs are queued one at a time. The native runner runs R
+inline on desktop, the command line and Python: `gp.runR` returns once its result is applied. The
+browser still refuses R scripts until its runner (webR, P6) lands.
 
 ## Never crash
 

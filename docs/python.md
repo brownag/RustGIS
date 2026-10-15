@@ -165,6 +165,14 @@ Formats](user-guide/data-formats.md). A large file read in place keeps only the 
 last view in memory; run `layer.loadAll` on it before `to_geojson` or `to_geopandas` to get all
 of them.
 
+## Running R scripts
+
+`gp.runR` runs an R script on the project's layers with a local R installation, and returns once
+its result is applied to the project. Install R with `jsonlite` and `sf` first; see
+[R Scripts](user-guide/r.md). RustGIS finds `Rscript` through the `RUSTGIS_RSCRIPT` environment
+variable, or through the `gp.setRscript` command (**Locate Rscript**), which takes the path to
+the program.
+
 ## From source
 
 The package lives in `apps/rustgis-python`, built with [maturin](https://www.maturin.rs):
