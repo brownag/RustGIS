@@ -53,6 +53,12 @@ pub fn commands() -> Vec<C> {
         C::new("gp.runR", "Run R Script", "Analyze › Geoprocessing", run_r)
             .params(r#"{"script": the R code, "inputs"?: [layer names], "args"?: {...} (values for the script)}"#),
     );
+    #[cfg(feature = "r")]
+    v.push(
+        C::new("gp.setRscript", "Locate Rscript", "Analyze › Geoprocessing", set_rscript)
+            .view()
+            .params(r#"{"path"?: "the Rscript program (empty: look in the usual places)"}"#),
+    );
     v
 }
 
@@ -198,15 +204,62 @@ pub fn r_complete(s: &mut Session, id: u64, ran: Result<rustgis_r::RExecutionOut
     }
 }
 
-/// Refuses an R script: its parameters and input names are checked, then it fails on every host,
-/// since the R runner isn't wired into the engine yet. It queues nothing.
+/// Runs an R script inline with the native runner and applies its result (one undo step). The
+/// parameters and input names are checked first. The browser refuses until its runner is wired in.
 #[cfg(feature = "r")]
 fn run_r(s: &mut Session, p: &Value) -> CmdResult {
     let params = r_params(p)?;
     for name in &params.inputs {
         s.map().layer_by_name(name).ok_or_else(|| format!("no layer named '{name}'"))?;
     }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        if s.r_running.is_some() {
+            return Err("another R script is still running".into());
+        }
+        let Some(run) = r_start(s, p)? else {
+            return Err("internal: an R run was queued".into());
+        };
+        let ran = rustgis_r::default_runner().run(&run.input, &|_| {}).map_err(|e| match e {
+            // The runner's own text, without its "R script failed:" prefix (r_complete adds one).
+            rustgis_r::RRunnerError::Failed(m) => m,
+            other => other.to_string(),
+        });
+        if r_complete(s, run.id, ran)?.is_some() {
+            return Err("internal: an R run was queued".into());
+        }
+        finish(s, &json!({"id": run.id}))
+    }
+    #[cfg(target_arch = "wasm32")]
     Err("R scripts can't run in this build yet".into())
+}
+
+/// The state of the Rscript choice: whether a program was found, its path and version. Native only.
+#[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+fn rscript_status() -> Value {
+    let found = rustgis_r::find();
+    json!({
+        "supported": true,
+        "found": found.is_some(),
+        "path": found.as_ref().map(|(p, _)| p.display().to_string()),
+        "version": found.map(|(_, v)| v),
+    })
+}
+
+/// Chooses the Rscript program (an empty path looks in the usual places again). Native only.
+#[cfg(feature = "r")]
+fn set_rscript(_s: &mut Session, p: &Value) -> CmdResult {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let path = ps(p, "path").map(str::trim).filter(|p| !p.is_empty()).map(std::path::PathBuf::from);
+        rustgis_r::choose(path)?;
+        Ok(rscript_status())
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        let _ = p;
+        Err("this build has no Rscript to choose".into())
+    }
 }
 
 /// The GeoLibre tools (empty when the suite isn't installed, or the build doesn't include it).

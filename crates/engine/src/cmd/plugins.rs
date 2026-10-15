@@ -255,6 +255,8 @@ const NEVER: &[&str] = &[
     "gp.installGeolibre",
     "gp.uninstallGeolibre",
     "gp.setGeolibre",
+    // Points the engine at another program to run R code with.
+    "gp.setRscript",
     "script.run",
     "task.run",
     "model.run",
