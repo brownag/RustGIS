@@ -9,6 +9,16 @@ use crate::harness::BOOTSTRAP_R;
 use crate::wire::{MAX_FILE_BYTES, MAX_FILES, MAX_SCRIPT_BYTES, RExecutionInput, RFile, RLayerKind, clamp_timeout, clean_lang};
 use serde_json::json;
 
+/// The language for R's messages: the cleaned tag, with `zh` and `pt` named the way R's
+/// translations are (`zh_CN`, `pt_BR`).
+pub fn r_language(lang: &str) -> String {
+    match clean_lang(lang).as_str() {
+        "zh" => "zh_CN".to_string(),
+        "pt" => "pt_BR".to_string(),
+        other => other.to_string(),
+    }
+}
+
 /// The files of a job, in order: `script.R`, `bootstrap.R`, `params.json`, then `in/<index>.<ext>`
 /// for each layer. Errors are plain English messages.
 pub fn build_job_files(input: &RExecutionInput) -> Result<Vec<RFile>, String> {
@@ -43,7 +53,7 @@ pub fn build_job_files(input: &RExecutionInput) -> Result<Vec<RFile>, String> {
     let args = if input.args.is_object() { input.args.clone() } else { json!({}) };
     let params = json!({
         "version": 1,
-        "lang": clean_lang(&input.lang),
+        "lang": r_language(&input.lang),
         "timeout_s": clamp_timeout(input.timeout_s),
         "args": args,
         "inputs": inputs,

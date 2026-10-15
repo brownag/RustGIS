@@ -7,6 +7,7 @@
 pub mod harness;
 pub mod job;
 pub mod manifest;
+pub mod notices;
 pub mod stage;
 pub mod wire;
 
@@ -64,7 +65,7 @@ pub enum ExecutionUpdate {
 /// Why a script could not run.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum RRunnerError {
-    #[error("Rscript was not found")]
+    #[error("{}", crate::notices::NOT_FOUND)]
     NotFound,
     #[error("not supported here: {0}")]
     Unsupported(String),

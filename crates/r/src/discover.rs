@@ -179,7 +179,7 @@ pub fn choose(exe: Option<PathBuf>) -> Result<Option<(PathBuf, String)>, String>
 
 /// Checks that the program runs and that `jsonlite` and `sf` load. Returns the program.
 pub fn ready() -> Result<PathBuf, String> {
-    let (exe, _) = find().ok_or("Rscript was not found")?;
+    let (exe, _) = find().ok_or_else(|| crate::notices::NOT_FOUND.to_string())?;
     let script = "for (p in c(\"jsonlite\", \"sf\")) cat(p, \"=\", requireNamespace(p, quietly = TRUE), \"\\n\", sep = \"\")";
     let mut c = command(&exe);
     c.args(["--no-save", "--no-restore", "--no-init-file", "-e", script]);

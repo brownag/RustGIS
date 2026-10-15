@@ -1,7 +1,7 @@
 //! Tests for the job builder: the file list, `params.json`, validation and hostile input.
 
 use crate::harness::BOOTSTRAP_R;
-use crate::job::{build_job_files, check_layer_size, job_paths_ok, selection_rows};
+use crate::job::{build_job_files, check_layer_size, job_paths_ok, r_language, selection_rows};
 use crate::wire::{MAX_FILES, MAX_SCRIPT_BYTES, RExecutionInput, RFile, RLayerInput, RLayerKind};
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -102,6 +102,24 @@ fn timeout_lang_and_args_are_cleaned() -> TestResult {
     input.timeout_s = Some(1_000_000);
     let params = params_of(&build_job_files(&input)?)?;
     assert_eq!(params["timeout_s"], 86_400);
+    Ok(())
+}
+
+#[test]
+fn r_language_names_zh_and_pt_the_way_r_does() {
+    assert_eq!(r_language(""), "en");
+    assert_eq!(r_language("zh"), "zh_CN");
+    assert_eq!(r_language("pt"), "pt_BR");
+    assert_eq!(r_language("de"), "de");
+    assert_eq!(r_language("zh_TW"), "zh_TW");
+    assert_eq!(r_language("bad lang"), "en");
+}
+
+#[test]
+fn params_lang_uses_the_r_name() -> TestResult {
+    let mut input = sample_input();
+    input.lang = "zh".into();
+    assert_eq!(params_of(&build_job_files(&input)?)?["lang"], "zh_CN");
     Ok(())
 }
 
