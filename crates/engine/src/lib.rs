@@ -20,6 +20,8 @@ pub use rustgis_geom as geom;
 pub use rustgis_map as map;
 pub use rustgis_plugins as plugins;
 pub use rustgis_render as render;
+#[cfg(feature = "r")]
+pub use rustgis_r as r;
 
 use std::path::PathBuf;
 
@@ -409,6 +411,9 @@ pub struct Session {
     pub project: Project,
     pub path: Option<PathBuf>,
     pub dirty: bool,
+    /// The interface language, such as `de`, for programs RustGIS runs (like R). Empty means
+    /// English.
+    pub lang: String,
     /// Favourite, recent and saved data sources (kept with the app's preferences, not the
     /// project).
     pub sources: sources::Sources,
@@ -614,6 +619,7 @@ impl Session {
             project,
             path: None,
             dirty: false,
+            lang: String::new(),
             sources: sources::Sources::default(),
             raster_defaults: rustgis_map::RasterDefaults::default(),
             registry: Registry { commands: cmd::all() },

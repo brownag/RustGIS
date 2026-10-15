@@ -26,7 +26,7 @@ iana-time-zone = { version = "0.1", features = ["fallback"] }
 sys-locale = { version = "0.3", features = ["js"] }
 # The GeoLibre tool suite (native only: its tools read and write files).
 rustgis-geolibre = { workspace = true, optional = true }
-# The R script runner (scaffold; native stub, browser unsupported).
+# The R script runner (native: Rscript; the browser refuses until webR is wired up).
 rustgis-r = { workspace = true, optional = true }
 
 [features]

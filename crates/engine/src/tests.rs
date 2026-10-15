@@ -1347,6 +1347,34 @@ fn gp_run_r_runs_inline_and_adds_a_table() {
 
 #[cfg(all(feature = "r", not(target_arch = "wasm32")))]
 #[test]
+fn gp_run_r_passes_the_interface_language_to_r() {
+    if !r_ready() {
+        return;
+    }
+    for (lang, expected) in [("de", "de"), ("zh", "zh_CN")] {
+        let mut s = world();
+        s.lang = lang.into();
+        let script = "rgis_write_table(data.frame(lang = Sys.getenv(\"LANGUAGE\")), \"L\")";
+        s.run("gp.runR", &json!({"script": script})).unwrap();
+        let table = s.project.tables.iter().find(|t| t.name == "L");
+        let value = table.and_then(|t| t.dataset.features.first()).and_then(|f| f.attrs.first());
+        assert_eq!(value, Some(&rustgis_data::Value::Text(expected.into())), "LANGUAGE for {lang}");
+    }
+}
+
+#[cfg(feature = "r")]
+#[test]
+fn gp_run_r_refuses_a_script_one_byte_over_the_limit() {
+    let mut s = world();
+    let tables = s.project.tables.len();
+    let script = "x".repeat(rustgis_r::MAX_SCRIPT_BYTES + 1);
+    assert_eq!(s.run("gp.runR", &json!({"script": script})).unwrap_err(), "the R script is over 1 MB");
+    assert_eq!(s.project.tables.len(), tables, "no table added");
+    assert!(s.r_running.is_none());
+}
+
+#[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+#[test]
 fn gp_run_r_failure_leaves_project_untouched() {
     if !r_ready() {
         return;

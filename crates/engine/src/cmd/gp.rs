@@ -56,7 +56,7 @@ pub fn commands() -> Vec<C> {
                 r#"{"script": the R code, "inputs"?: [layer names], "args"?: {...} (values for the script), "timeout_s"?: seconds}"#,
             ));
             v.push(
-                C::new("gp.setRscript", "Locate Rscript", "Analyze › Geoprocessing", set_rscript)
+                C::new("gp.setRscript", "Set Rscript", "Analyze › Geoprocessing", set_rscript)
                     .view()
                     .params(r#"{"path"?: "the Rscript program (empty: look in the usual places)"}"#),
             );
@@ -65,15 +65,20 @@ pub fn commands() -> Vec<C> {
     v
 }
 
-/// A script to run with the R runner: its parameters checked (see [`r_start`]).
+/// The browser's R job, taken by the web app's placeholder runner (see [`r_start`]).
 #[cfg(feature = "r")]
 pub struct RRun {
     pub input: rustgis_r::RExecutionInput,
 }
 
-/// The most script text a run takes (1 MB).
+/// The text a runner failure starts with (no Rscript, a crash, the time limit). A script's own
+/// error comes without it.
 #[cfg(feature = "r")]
-const MAX_R_SCRIPT: usize = 1 << 20;
+pub const R_FAILURE_PREFIX: &str = "R script: ";
+
+/// The text for a run that was dropped before it finished.
+#[cfg(feature = "r")]
+const DROPPED_R_RUN: &str = "the R script's run was dropped (its project was closed, or too many runs were waiting)";
 
 /// The checked parameters of a `gp.runR` run (see [`r_params`]).
 #[cfg(feature = "r")]
@@ -90,7 +95,7 @@ pub struct RParams {
 #[cfg(feature = "r")]
 pub fn r_params(params: &Value) -> Result<RParams, String> {
     let script = ps(params, "script").map(str::trim).filter(|x| !x.is_empty()).ok_or("the R script is required")?;
-    if script.len() > MAX_R_SCRIPT {
+    if script.len() > rustgis_r::MAX_SCRIPT_BYTES {
         return Err("the R script is over 1 MB".into());
     }
     let names = match params.get("inputs") {
@@ -147,7 +152,13 @@ pub fn r_start(s: &mut Session, params: &Value) -> Result<Option<RRunStart>, Str
     }
     s.next_pending = s.next_pending.wrapping_add(1);
     let id = s.next_pending;
-    let input = rustgis_r::RExecutionInput { script: p.script, layers, args: p.args, timeout_s: p.timeout_s, ..Default::default() };
+    let input = rustgis_r::RExecutionInput {
+        script: p.script,
+        layers,
+        args: p.args,
+        timeout_s: p.timeout_s,
+        lang: s.lang.clone(),
+    };
     let start = if s.r_running.is_none() {
         s.r_running = Some(id);
         Some(RRunStart { id, input: input.clone() })
@@ -167,11 +178,11 @@ pub fn r_complete(s: &mut Session, id: u64, ran: Result<rustgis_r::RExecutionOut
         .started
         .iter()
         .position(|(n, j, ..)| *n == id && matches!(j, ExternalJob::R(_)))
-        .ok_or("the R script's run was dropped (its project was closed, or too many runs were waiting)")?;
+        .ok_or(DROPPED_R_RUN)?;
     let (_, job, params, t0) = s.started.remove(i);
     #[cfg(feature = "geolibre")]
     let ExternalJob::R(job) = job else {
-        return Err("the R script's run was dropped (its project was closed, or too many runs were waiting)".into());
+        return Err(DROPPED_R_RUN.into());
     };
     #[cfg(not(feature = "geolibre"))]
     let ExternalJob::R(job) = job;
@@ -185,10 +196,8 @@ pub fn r_complete(s: &mut Session, id: u64, ran: Result<rustgis_r::RExecutionOut
         let exact = rows.iter().find(|(n, _)| n.as_str() == name);
         exact.or_else(|| rows.iter().find(|(n, _)| n.eq_ignore_ascii_case(name))).map(|(_, r)| r.clone())
     };
-    let result = ran.map_err(|e| format!("R script: {e}")).and_then(|out| {
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| rustgis_r::manifest::convert_output(&out, &rows_of)))
-            .unwrap_or_else(|_| Err("R script: its output couldn't be read".into()))
-    });
+    // convert_output catches panics in the reader itself, so no guard is needed here.
+    let result = ran.map_err(|e| format!("{R_FAILURE_PREFIX}{e}")).and_then(|out| rustgis_r::manifest::convert_output(&out, &rows_of));
     s.pending.push(crate::PendingRun {
         id,
         tool: "R script".into(),
