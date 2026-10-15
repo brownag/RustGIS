@@ -31,7 +31,7 @@ fn small_raster() -> Result<Raster, Box<dyn std::error::Error>> {
 
 #[test]
 fn point_dataset_stages_as_fgb_and_reads_back() -> TestResult {
-    let layer = stage_dataset(&point_dataset(), &[])?;
+    let layer = stage_dataset(&point_dataset(), &[])?.layer;
     assert_eq!(layer.kind, RLayerKind::Vector);
     assert_eq!(layer.format, "fgb");
     assert_eq!(layer.name, "Cities");
@@ -48,7 +48,7 @@ fn polygon_dataset_stages_as_fgb_and_reads_back() -> TestResult {
     for f in &mut ds.features {
         f.geometry = Some(Geometry::Polygon(vec![vec![ring.clone()]]));
     }
-    let layer = stage_dataset(&ds, &[])?;
+    let layer = stage_dataset(&ds, &[])?.layer;
     assert_eq!(layer.format, "fgb");
     let (back, _) = io::read_bytes("areas.fgb", &layer.data)?;
     assert_eq!(back.features.len(), 3);
@@ -62,18 +62,47 @@ fn geometryless_dataset_stages_as_csv_with_header() -> TestResult {
     for f in &mut ds.features {
         f.geometry = None;
     }
-    let layer = stage_dataset(&ds, &[])?;
-    assert_eq!(layer.kind, RLayerKind::Table);
-    assert_eq!(layer.format, "csv");
-    let text = String::from_utf8(layer.data)?;
+    let staged = stage_dataset(&ds, &[])?;
+    assert_eq!(staged.layer.kind, RLayerKind::Table);
+    assert_eq!(staged.layer.format, "csv");
+    let text = String::from_utf8(staged.layer.data)?;
     assert_eq!(text.lines().next(), Some("name"));
     Ok(())
 }
 
 #[test]
+fn table_keeps_every_row() -> TestResult {
+    let mut ds = point_dataset();
+    ds.geometry_type = GeometryType::None;
+    for f in &mut ds.features {
+        f.geometry = None;
+    }
+    let staged = stage_dataset(&ds, &[])?;
+    assert_eq!(staged.read_rows, vec![0, 1, 2]);
+    assert!(staged.layer.selection.is_empty());
+    Ok(())
+}
+
+#[test]
 fn selection_is_sorted_deduped_and_clipped() -> TestResult {
-    let layer = stage_dataset(&point_dataset(), &[2, 0, 2, 9])?;
-    assert_eq!(layer.selection, vec![0, 2]);
+    let staged = stage_dataset(&point_dataset(), &[2, 0, 2, 9])?;
+    assert_eq!(staged.layer.selection, vec![0, 2]);
+    assert_eq!(staged.read_rows, vec![0, 2]);
+    Ok(())
+}
+
+#[test]
+fn selection_positions_skip_features_without_geometry() -> TestResult {
+    let mut ds = point_dataset();
+    ds.features.get_mut(1).ok_or("no feature")?.geometry = None;
+    // Host rows 0 and 2 are staged at positions 0 and 1.
+    let staged = stage_dataset(&ds, &[0, 2])?;
+    assert_eq!(staged.layer.selection, vec![0, 1]);
+    assert_eq!(staged.read_rows, vec![0, 2]);
+    // No selection: the script reads every staged row.
+    let all = stage_dataset(&ds, &[])?;
+    assert!(all.layer.selection.is_empty());
+    assert_eq!(all.read_rows, vec![0, 2]);
     Ok(())
 }
 
@@ -87,7 +116,7 @@ fn layer_size_check_uses_the_cap_given() {
 fn raster_keeps_an_original_tif() -> TestResult {
     let raster = small_raster()?;
     let original = b"II*\0original".to_vec();
-    let layer = stage_raster("Dem", Some(("dem.TIF", &original)), &raster)?;
+    let layer = stage_raster("Dem", Some(("dem.TIF", &original)), &raster)?.layer;
     assert_eq!(layer.kind, RLayerKind::Raster);
     assert_eq!(layer.format, "tif");
     assert_eq!(layer.data, original);
@@ -97,7 +126,7 @@ fn raster_keeps_an_original_tif() -> TestResult {
 #[test]
 fn raster_without_original_is_written_as_geotiff() -> TestResult {
     let raster = small_raster()?;
-    let layer = stage_raster("Dem", None, &raster)?;
+    let layer = stage_raster("Dem", None, &raster)?.layer;
     assert_eq!(layer.data, rustgis_data::raster::geotiff::write(&raster, 0)?);
     Ok(())
 }
@@ -105,7 +134,7 @@ fn raster_without_original_is_written_as_geotiff() -> TestResult {
 #[test]
 fn asc_original_is_not_passed_through() -> TestResult {
     let raster = small_raster()?;
-    let layer = stage_raster("Dem", Some(("dem.asc", b"ncols 4")), &raster)?;
+    let layer = stage_raster("Dem", Some(("dem.asc", b"ncols 4")), &raster)?.layer;
     assert_eq!(layer.data, rustgis_data::raster::geotiff::write(&raster, 0)?);
     Ok(())
 }

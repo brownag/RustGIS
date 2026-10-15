@@ -131,11 +131,12 @@ pub fn r_start(s: &mut Session, params: &Value) -> Result<Option<RRunStart>, Str
             let layer = s.map().layer_by_name(name).ok_or_else(|| format!("no layer named '{name}'"))?;
             if layer.is_raster() {
                 let raster = inputs.raster(name).ok_or_else(|| format!("layer '{name}' has no raster data"))?;
-                layers.push(rustgis_r::stage::stage_raster(name, raster.embedded, raster.raster)?);
+                layers.push(rustgis_r::stage::stage_raster(name, raster.embedded, raster.raster)?.layer);
             } else {
                 let ds = inputs.dataset(name).ok_or_else(|| format!("no layer named '{name}'"))?;
-                layers.push(rustgis_r::stage::stage_dataset(ds, inputs.selection(name))?);
-                rows.push((name.clone(), ds.features.len()));
+                let staged = rustgis_r::stage::stage_dataset(ds, inputs.selection(name))?;
+                rows.push((staged.layer.name.clone(), staged.read_rows));
+                layers.push(staged.layer);
             }
         }
         (layers, rows)
@@ -180,7 +181,10 @@ pub fn r_complete(s: &mut Session, id: u64, ran: Result<rustgis_r::RExecutionOut
     // Reading the host's output parses outside `Session::run`'s guard: a bug in a reader must not
     // take the app down.
     let rows = job.rows;
-    let rows_of = |name: &str| rows.iter().find(|(n, _)| n.as_str() == name).map(|(_, n)| *n);
+    let rows_of = |name: &str| {
+        let exact = rows.iter().find(|(n, _)| n.as_str() == name);
+        exact.or_else(|| rows.iter().find(|(n, _)| n.eq_ignore_ascii_case(name))).map(|(_, r)| r.clone())
+    };
     let result = ran.map_err(|e| format!("R script: {e}")).and_then(|out| {
         std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| rustgis_r::manifest::convert_output(&out, &rows_of)))
             .unwrap_or_else(|_| Err("R script: its output couldn't be read".into()))
@@ -403,12 +407,12 @@ pub(crate) enum ExternalJob {
     R(RJob),
 }
 
-/// A staged R run waiting to start: its input, and the row count of each vector layer at staging
-/// (the bounds for the rows the script returns).
+/// A staged R run waiting to start: its input, and the host rows each vector layer was read from
+/// at staging (the rows the script's results refer to).
 #[cfg(feature = "r")]
 pub(crate) struct RJob {
     pub(crate) input: rustgis_r::RExecutionInput,
-    pub(crate) rows: Vec<(String, usize)>,
+    pub(crate) rows: Vec<(String, Vec<usize>)>,
 }
 
 /// An R run the host launches now (see [`r_start`]). The engine never runs R itself: the host

@@ -8,9 +8,9 @@ use serde_json::{Value, json};
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
-/// Input layer "Cities" has five rows; any other name is not an input.
-fn cities_rows(name: &str) -> Option<usize> {
-    (name == "Cities").then_some(5)
+/// Input layer "Cities" was read from five host rows; any other name is not an input.
+fn cities_rows(name: &str) -> Option<Vec<usize>> {
+    (name == "Cities").then(|| (0..5).collect())
 }
 
 fn cities() -> Dataset {
@@ -106,6 +106,28 @@ fn selection_is_one_based_sorted_and_unique() -> TestResult {
     };
     assert_eq!(layer, "Cities");
     assert_eq!(rows, vec![0, 2, 4]);
+    Ok(())
+}
+
+#[test]
+fn selection_rows_map_through_the_rows_read() -> TestResult {
+    // The script read host rows 0 and 2 only: its row 2 is host row 2.
+    let rows_of = |name: &str| (name == "Cities").then(|| vec![0, 2]);
+    let manifest = json!({"version": 1, "ok": true, "selection": {"layer": "Cities", "rows": [2]}});
+    let result = convert_output(&bare(&manifest), &rows_of)?;
+    let Output::Selection { rows, .. } = result.output else {
+        return Err("expected a selection".into());
+    };
+    assert_eq!(rows, vec![2]);
+    // Row 3 is past the two rows read.
+    let past = json!({"version": 1, "ok": true, "selection": {"layer": "Cities", "rows": [3]}});
+    let Err(message) = convert_output(&bare(&past), &rows_of) else {
+        return Err("expected the conversion to fail".into());
+    };
+    assert_eq!(message, "selection row 3 is outside the 2 rows read from layer 'Cities'");
+    // Row 0 is not a row.
+    let zero = json!({"version": 1, "ok": true, "selection": {"layer": "Cities", "rows": [0]}});
+    assert!(convert_output(&bare(&zero), &rows_of).is_err());
     Ok(())
 }
 
@@ -253,7 +275,7 @@ fn hostile_manifests_never_panic() -> TestResult {
 fn a_million_rows_are_accepted_and_one_more_is_not() -> TestResult {
     let all: Vec<Value> = (1..=1_000_000u64).map(|n| json!(n)).collect();
     let big = |rows: Vec<Value>| json!({"version": 1, "ok": true, "selection": {"layer": "Big", "rows": rows}});
-    let rows_of = |name: &str| (name == "Big").then_some(1_000_000usize);
+    let rows_of = |name: &str| (name == "Big").then(|| (0..1_000_000usize).collect::<Vec<usize>>());
     let result = convert_output(&bare(&big(all.clone())), &rows_of)?;
     let Output::Selection { rows, .. } = result.output else {
         return Err("expected a selection".into());

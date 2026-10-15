@@ -48,7 +48,7 @@ pub struct RLayerInput {
     pub data: Vec<u8>,
     #[serde(default)]
     pub kind: RLayerKind,
-    /// The host rows the script gets, counted from 0.
+    /// The positions (0-based) within the rows staged in `data` that the script gets.
     #[serde(default)]
     pub selection: Vec<usize>,
 }

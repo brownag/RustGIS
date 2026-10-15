@@ -62,8 +62,8 @@ fn point_dataset() -> Dataset {
 }
 
 /// The row count of the one input the tests use: "Cities", with three rows.
-fn cities_rows(name: &str) -> Option<usize> {
-    (name == "Cities").then_some(3)
+fn cities_rows(name: &str) -> Option<Vec<usize>> {
+    (name == "Cities").then(|| vec![0, 1, 2])
 }
 
 /// Runs the script with the native runner and converts its output.
@@ -97,7 +97,7 @@ rgis_write_table(sf::st_drop_geometry(buffered), "Stats")
 rgis_log("done")
 "#
         .into(),
-        layers: vec![stage_dataset(&point_dataset(), &[])?],
+        layers: vec![stage_dataset(&point_dataset(), &[])?.layer],
         ..Default::default()
     };
     let result = run_case(&input)?;
@@ -117,7 +117,7 @@ fn harness_select_returns_zero_based_rows() -> TestResult {
     let _r = lock_r();
     let input = RExecutionInput {
         script: r#"rgis_select("Cities", c(1, 2))"#.into(),
-        layers: vec![stage_dataset(&point_dataset(), &[])?],
+        layers: vec![stage_dataset(&point_dataset(), &[])?.layer],
         ..Default::default()
     };
     let result = run_case(&input)?;
@@ -178,7 +178,7 @@ rgis_write_table(data.frame(n = n), "Count")
 "#
         .into(),
         // Row 1 counted from 0, so the script sees row 2 of three.
-        layers: vec![stage_dataset(&point_dataset(), &[1])?],
+        layers: vec![stage_dataset(&point_dataset(), &[1])?.layer],
         ..Default::default()
     };
     let result = run_case(&input)?;

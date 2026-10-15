@@ -16,16 +16,16 @@ const MANIFEST_PATH: &str = "out/manifest.json";
 /// The longest message text kept, in bytes.
 const MAX_MESSAGE_BYTES: usize = 4 << 10;
 
-/// Converts a script's output to a tool result. `rows_of` gives the row count of an input layer
-/// by name, or `None` when there is no such input. Any failure is returned as its message.
-pub fn convert_output(out: &RExecutionOutput, rows_of: &dyn Fn(&str) -> Option<usize>) -> Result<ToolResult, String> {
+/// Converts a script's output to a tool result. `rows_of` gives the host rows an input layer was
+/// read from, by name, or `None` when there is no such input. Any failure is returned as its message.
+pub fn convert_output(out: &RExecutionOutput, rows_of: &dyn Fn(&str) -> Option<Vec<usize>>) -> Result<ToolResult, String> {
     match catch_unwind(AssertUnwindSafe(|| convert_manifest(out, rows_of))) {
         Ok(result) => result,
         Err(_) => Err("the R result could not be read".into()),
     }
 }
 
-fn convert_manifest(out: &RExecutionOutput, rows_of: &dyn Fn(&str) -> Option<usize>) -> Result<ToolResult, String> {
+fn convert_manifest(out: &RExecutionOutput, rows_of: &dyn Fn(&str) -> Option<Vec<usize>>) -> Result<ToolResult, String> {
     let file = find_file(&out.files, MANIFEST_PATH).ok_or("the R script did not finish: no result file was written")?;
     if file.data.len() > MAX_MANIFEST_BYTES {
         return Err("the R result file is too large".into());
@@ -172,19 +172,21 @@ pub(crate) fn check_coords(name: &str, ds: &Dataset) -> Result<(), String> {
     Ok(())
 }
 
-/// Reads the `selection` object: 1-based rows of an input layer, kept as 0-based and sorted.
-fn convert_selection(sel: &Value, rows_of: &dyn Fn(&str) -> Option<usize>) -> Result<Output, String> {
+/// Reads the `selection` object: 1-based rows of an input layer, mapped to the host rows the
+/// script read, sorted.
+fn convert_selection(sel: &Value, rows_of: &dyn Fn(&str) -> Option<Vec<usize>>) -> Result<Output, String> {
     let layer = sel.get("layer").and_then(Value::as_str).ok_or("the selection needs a layer name")?;
-    let count = rows_of(layer).ok_or_else(|| format!("the selection names layer '{layer}', which is not an input"))?;
+    let read_rows = rows_of(layer).ok_or_else(|| format!("the selection names layer '{layer}', which is not an input"))?;
     let rows = sel.get("rows").and_then(Value::as_array).ok_or("the selection rows must be a list")?;
     let mut picked = BTreeSet::new();
     for row in rows {
         let number = row.as_u64().ok_or_else(|| format!("selection row {row} is not a whole number"))?;
         let index = usize::try_from(number).map_err(|_| format!("selection row {number} is out of range"))?;
-        if index < 1 || index > count {
-            return Err(format!("selection row {index} is outside layer '{layer}' (1 to {count})"));
-        }
-        picked.insert(index - 1);
+        let host = index
+            .checked_sub(1)
+            .and_then(|i| read_rows.get(i))
+            .ok_or_else(|| format!("selection row {index} is outside the {} rows read from layer '{layer}'", read_rows.len()))?;
+        picked.insert(*host);
     }
     Ok(Output::Selection { layer: layer.to_string(), rows: picked.into_iter().collect() })
 }
