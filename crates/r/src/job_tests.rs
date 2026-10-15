@@ -10,18 +10,8 @@ fn sample_input() -> RExecutionInput {
     RExecutionInput {
         script: "print(1)".into(),
         layers: vec![
-            RLayerInput {
-                name: "Cities".into(),
-                data: b"fgb-bytes".to_vec(),
-                kind: RLayerKind::Vector,
-                selection: vec![4, 0, 4],
-            },
-            RLayerInput {
-                name: "Stats".into(),
-                data: b"a,b\n1,2\n".to_vec(),
-                kind: RLayerKind::Table,
-                selection: vec![],
-            },
+            RLayerInput { name: "Cities".into(), data: b"fgb-bytes".to_vec(), kind: RLayerKind::Vector, selection: vec![4, 0, 4] },
+            RLayerInput { name: "Stats".into(), data: b"a,b\n1,2\n".to_vec(), kind: RLayerKind::Table, selection: vec![] },
         ],
         args: serde_json::json!({ "k": 3 }),
         timeout_s: None,

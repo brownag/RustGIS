@@ -153,12 +153,7 @@ fn old_format_json_still_parses() -> TestResult {
 fn new_fields_round_trip() -> TestResult {
     let input = RExecutionInput {
         script: "1".into(),
-        layers: vec![RLayerInput {
-            name: "t".into(),
-            data: b"a\n1".to_vec(),
-            kind: RLayerKind::Table,
-            selection: vec![1, 5],
-        }],
+        layers: vec![RLayerInput { name: "t".into(), data: b"a\n1".to_vec(), kind: RLayerKind::Table, selection: vec![1, 5] }],
         args: serde_json::json!({}),
         timeout_s: Some(30),
         lang: "fr".into(),

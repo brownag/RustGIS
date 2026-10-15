@@ -70,13 +70,7 @@ fn cities_rows(name: &str) -> Option<Vec<usize>> {
 
 /// Five rows with no geometry, named "T": a table.
 fn five_row_table() -> Dataset {
-    let features = (0..5u32)
-        .map(|i| Feature {
-            id: u64::from(i),
-            geometry: None,
-            attrs: vec![Value::Text(format!("t{i}"))],
-        })
-        .collect();
+    let features = (0..5u32).map(|i| Feature { id: u64::from(i), geometry: None, attrs: vec![Value::Text(format!("t{i}"))] }).collect();
     Dataset {
         name: "T".into(),
         geometry_type: GeometryType::None,
@@ -248,11 +242,7 @@ fn harness_select_uses_input_name_across_case() -> TestResult {
     let _r = lock_r();
     let staged = stage_dataset(&five_row_table(), &[1, 3])?;
     let read_rows = staged.read_rows.clone();
-    let input = RExecutionInput {
-        script: r#"rgis_select("t", 1)"#.into(),
-        layers: vec![staged.layer],
-        ..Default::default()
-    };
+    let input = RExecutionInput { script: r#"rgis_select("t", 1)"#.into(), layers: vec![staged.layer], ..Default::default() };
     let out = RscriptRunner.run(&input, &|_| {}).map_err(|e| e.to_string())?;
     let rows_of = |name: &str| (name == "T").then(|| read_rows.clone());
     let result = convert_output(&out, &rows_of)?;
@@ -289,10 +279,9 @@ fn harness_without_jsonlite_writes_failure_manifest() -> TestResult {
         file.data = text.replace(jsonlite_call, "requireNamespace(\"rgisNoSuchPackage\"").into_bytes();
     }
     let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_nanos();
-    let dir = JobDir(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target").join(format!(
-        "rgis-r-bootstrap-{}-{nanos:x}",
-        std::process::id()
-    )));
+    let dir = JobDir(
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target").join(format!("rgis-r-bootstrap-{}-{nanos:x}", std::process::id())),
+    );
     std::fs::create_dir_all(dir.0.join("out"))?;
     for file in &files {
         let path = dir.0.join(&file.path);
@@ -309,10 +298,7 @@ fn harness_without_jsonlite_writes_failure_manifest() -> TestResult {
         .stderr(Stdio::null())
         .status()?;
     let manifest = std::fs::read(dir.0.join("out").join("manifest.json"))?;
-    let out = RExecutionOutput {
-        files: vec![RFile { path: "out/manifest.json".into(), data: manifest }],
-        ..Default::default()
-    };
+    let out = RExecutionOutput { files: vec![RFile { path: "out/manifest.json".into(), data: manifest }], ..Default::default() };
     assert!(status.success(), "Rscript exited with {status:?}");
     let Err(err) = convert_output(&out, &|_| None) else {
         return Err("expected the failure manifest to be an error".into());

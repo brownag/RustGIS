@@ -152,13 +152,7 @@ pub fn r_start(s: &mut Session, params: &Value) -> Result<Option<RRunStart>, Str
     }
     s.next_pending = s.next_pending.wrapping_add(1);
     let id = s.next_pending;
-    let input = rustgis_r::RExecutionInput {
-        script: p.script,
-        layers,
-        args: p.args,
-        timeout_s: p.timeout_s,
-        lang: s.lang.clone(),
-    };
+    let input = rustgis_r::RExecutionInput { script: p.script, layers, args: p.args, timeout_s: p.timeout_s, lang: s.lang.clone() };
     let start = if s.r_running.is_none() {
         s.r_running = Some(id);
         Some(RRunStart { id, input: input.clone() })
@@ -174,11 +168,7 @@ pub fn r_start(s: &mut Session, params: &Value) -> Result<Option<RRunStart>, Str
 /// it hands back the next queued R run for the host to launch, if none is under way.
 #[cfg(feature = "r")]
 pub fn r_complete(s: &mut Session, id: u64, ran: Result<rustgis_r::RExecutionOutput, String>) -> Result<Option<RRunStart>, String> {
-    let i = s
-        .started
-        .iter()
-        .position(|(n, j, ..)| *n == id && matches!(j, ExternalJob::R(_)))
-        .ok_or(DROPPED_R_RUN)?;
+    let i = s.started.iter().position(|(n, j, ..)| *n == id && matches!(j, ExternalJob::R(_))).ok_or(DROPPED_R_RUN)?;
     let (_, job, params, t0) = s.started.remove(i);
     #[cfg(feature = "geolibre")]
     let ExternalJob::R(job) = job else {

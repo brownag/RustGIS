@@ -19,9 +19,9 @@ pub use rustgis_data as data;
 pub use rustgis_geom as geom;
 pub use rustgis_map as map;
 pub use rustgis_plugins as plugins;
-pub use rustgis_render as render;
 #[cfg(feature = "r")]
 pub use rustgis_r as r;
+pub use rustgis_render as render;
 
 use std::path::PathBuf;
 
