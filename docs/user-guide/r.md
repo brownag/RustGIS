@@ -28,23 +28,27 @@ that only writes tables does not need it.
 
 ## Locate Rscript
 
-RustGIS runs the `Rscript` program that comes with R. To pick a different one, use **Locate
-Rscript** (`gp.setRscript`, under **Analyze › Geoprocessing**). Give it the path to the program;
-RustGIS checks that it is an Rscript program and keeps it. Leave the path empty to look in the
-usual places again.
+RustGIS runs the `Rscript` program that comes with R. On the desktop, run **Locate Rscript…**
+from command search (it is listed under **Analyze › Geoprocessing**) to open a file picker. Pick
+the program and RustGIS remembers it. From the command line or Python, use **Set Rscript** (`gp.setRscript`) with
+the path to the program. Leave the path empty to look in the usual places again. RustGIS refuses
+a program that is not Rscript.
+
+The desktop app remembers the choice. The command line and Python keep it for the session.
 
 The environment variable `RUSTGIS_RSCRIPT` names the program too. RustGIS reads it when it looks
 for R, in the desktop app, the command line and Python alike.
 
-RustGIS checks that the program runs and that `jsonlite` and `sf` load. If one of them is
-missing, the message names the `install.packages` call to run.
+A run that needs a package that is not installed stops with a message that names the
+`install.packages` call to run: `jsonlite` always, `sf` for geometry, and `terra` for rasters.
+RustGIS never installs packages.
 
 ## Where RustGIS looks for Rscript
 
 RustGIS uses the first program that answers `--version` with an Rscript version line, looking in
 this order:
 
-1. The program you chose with **Locate Rscript**.
+1. The program you chose with **Locate Rscript…** or **Set Rscript**.
 2. The path in `RUSTGIS_RSCRIPT`.
 3. `Rscript` in the `bin` folder of the `R_HOME` folder.
 4. `Rscript` in each folder on your `PATH`.
@@ -73,6 +77,9 @@ rustgis-cli run --sample --cmd 'gp.runR={"script":"cities <- rgis_read_layer(\"C
 `gp.runR` returns after the result is applied to the project. The command line and Python
 wait for the run to finish.
 
+R's own messages follow the interface language on the desktop. The command line and Python use
+English.
+
 ## The harness
 
 The script calls these functions. RustGIS loads them before your code runs.
@@ -82,27 +89,30 @@ The script calls these functions. RustGIS loads them before your code runs.
 | `rgis_param(name, default)` | Reads one value from `args`, or `default` when it is missing. |
 | `rgis_args()` | Returns all of `args` as a named list. |
 | `rgis_log(..., level)` | Records a message for the run's log. `level` is `debug`, `info`, `warn` or `error`. Nothing is printed. |
-| `rgis_read_layer(name)` | Reads a layer named in `inputs`. A vector layer is limited to its selection, if one is set. |
-| `rgis_select(layer, rows)` | Keeps only the given rows (1-based) of a layer for `rgis_read_layer`. The last call for a layer wins. |
+| `rgis_read_layer(name)` | Reads a layer named in `inputs`. If the layer has a selection, only the selected rows come back. A vector leaves out features with no geometry. |
+| `rgis_select(layer, rows)` | Sets the rows the run returns for a layer. The rows are 1-based and count within what `rgis_read_layer` gave for that layer. The last call for a layer wins. RustGIS maps them to the layer's own rows; a row past the count fails the run. |
 | `rgis_write_layer(x, name)` | Adds an `sf` object as a new layer. Needs the `sf` package. |
 | `rgis_write_table(df, name)` | Adds a data frame as a new table. |
 
 Layer and output names are checked. A name that is not allowed stops the run with an error.
+
+Text the script prints with `print`, `cat` or `message` is added to the run's messages after the
+run finishes, after the `rgis_log` messages. The last 1,000 lines are kept.
 
 ## Limits
 
 - The script is at most 1 MB.
 - A file that goes to or from a run is at most 512 MiB on the desktop, the command line and Python.
   A run takes or returns at most 256 files, and its manifest is at most 8 MB.
-- A run keeps at most 1,000 log messages.
+- A run keeps at most 1,000 messages. Messages from `rgis_log` and printed text count together.
 - The time limit defaults to 120 seconds. You can ask for any whole number of seconds from
   1 to 86,400 (24 hours). A negative value is treated as 1 second.
 
 ## When a run fails
 
-A run that fails, or runs past its time limit, is stopped. Your layers and tables stay as they
-were: nothing is added, and the project is not changed. The failed run is still listed in the
-project's geoprocessing history, with the reason it failed.
+A run that fails, or runs past its time limit, is stopped. The project is unchanged: nothing is
+added. The reason shows as a notice. The failed run is not added to the project's geoprocessing
+history.
 
 Only one R run goes at a time. A second run waits in a queue, which has a fixed limit.
 

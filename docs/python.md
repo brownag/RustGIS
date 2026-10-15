@@ -170,7 +170,7 @@ of them.
 `gp.runR` runs an R script on the project's layers with a local R installation, and returns once
 its result is applied to the project. Install R with `jsonlite` and `sf` first; see
 [R Scripts](user-guide/r.md). RustGIS finds `Rscript` through the `RUSTGIS_RSCRIPT` environment
-variable, or through the `gp.setRscript` command (**Locate Rscript**), which takes the path to
+variable, or through the `gp.setRscript` command (**Set Rscript**), which takes the path to
 the program.
 
 ## From source

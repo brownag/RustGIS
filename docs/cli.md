@@ -63,7 +63,7 @@ tables and layers as one undo step. The command returns after that result is app
 `jsonlite` and `sf` packages must be installed; see [R Scripts](user-guide/r.md).
 
 RustGIS finds `Rscript` through the `RUSTGIS_RSCRIPT` environment variable or the `gp.setRscript`
-command (**Locate Rscript**):
+command (**Set Rscript**):
 
 ```sh
 rustgis-cli run --sample --cmd 'gp.setRscript={"path":"/usr/bin/Rscript"}' --cmd 'gp.runR={"script":"rgis_write_table(data.frame(layers = 1), "Count")"}'
