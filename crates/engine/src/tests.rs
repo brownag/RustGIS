@@ -1382,6 +1382,36 @@ fn gp_run_r_refuses_an_empty_script() {
     assert!(s.started.is_empty(), "nothing started");
 }
 
+#[cfg(feature = "r")]
+#[test]
+fn gp_run_r_rejects_a_bad_timeout() {
+    let mut s = world();
+    let e = s.run("gp.runR", &json!({"script": "1", "timeout_s": "soon"})).unwrap_err();
+    assert!(e.contains("timeout_s"), "{e}");
+    assert!(s.r_running.is_none());
+    assert!(s.started.is_empty(), "nothing started");
+}
+
+#[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+#[test]
+fn gp_run_r_timeout_leaves_project_untouched() {
+    if !r_ready() {
+        return;
+    }
+    let mut s = world();
+    let layers = s.map().layers.len();
+    let tables = s.project.tables.len();
+    let undo = s.undo_label();
+    let t0 = std::time::Instant::now();
+    let e = s.run("gp.runR", &json!({"script": "Sys.sleep(30)", "timeout_s": 1})).unwrap_err();
+    assert!(e.contains("stopped after 1 s"), "{e}");
+    assert!(t0.elapsed() < std::time::Duration::from_secs(10), "the limit held");
+    assert_eq!(s.map().layers.len(), layers, "no layer added");
+    assert_eq!(s.project.tables.len(), tables, "no table added");
+    assert_eq!(s.undo_label(), undo, "no undo step added");
+    assert!(s.r_running.is_none());
+}
+
 #[cfg(all(feature = "r", not(target_arch = "wasm32")))]
 #[test]
 fn set_rscript_refuses_a_program_that_is_not_rscript() {

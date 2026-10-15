@@ -78,6 +78,8 @@ pub struct RParams {
     pub script: String,
     pub inputs: Vec<String>,
     pub args: Value,
+    /// The time limit in seconds (clamped), or `None` for the default.
+    pub timeout_s: Option<u64>,
 }
 
 /// Checks `gp.runR` parameters: a non-empty `script` (at most 1 MB), `inputs` as a list of layer
@@ -102,7 +104,14 @@ pub fn r_params(params: &Value) -> Result<RParams, String> {
         Some(v @ Value::Object(_)) => v.clone(),
         Some(_) => return Err("args must be an object".into()),
     };
-    Ok(RParams { script: script.to_string(), inputs, args })
+    let timeout_s = match params.get("timeout_s") {
+        None | Some(Value::Null) => None,
+        Some(v) => {
+            let n = v.as_i64().ok_or("timeout_s must be a whole number of seconds")?;
+            Some(rustgis_r::clamp_timeout(Some(n.max(0) as u64)))
+        }
+    };
+    Ok(RParams { script: script.to_string(), inputs, args, timeout_s })
 }
 
 /// Stages a `gp.runR` run's inputs from the map (read only) and queues it. Returns the run when
@@ -134,7 +143,7 @@ pub fn r_start(s: &mut Session, params: &Value) -> Result<Option<RRunStart>, Str
     }
     s.next_pending = s.next_pending.wrapping_add(1);
     let id = s.next_pending;
-    let input = rustgis_r::RExecutionInput { script: p.script, layers, args: p.args, ..Default::default() };
+    let input = rustgis_r::RExecutionInput { script: p.script, layers, args: p.args, timeout_s: p.timeout_s, ..Default::default() };
     let start = if s.r_running.is_none() {
         s.r_running = Some(id);
         Some(RRunStart { id, input: input.clone() })
