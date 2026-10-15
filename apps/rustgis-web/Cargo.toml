@@ -10,9 +10,9 @@ publish = false
 workspace = true
 
 [dependencies]
-rustgis-ui-egui = { workspace = true }
+rustgis-ui-egui = { workspace = true, features = ["r"] }
 # The GeoLibre tools, run in the browser by geolibre-rust's WASI runner.
-rustgis-engine = { workspace = true, features = ["geolibre"] }
+rustgis-engine = { workspace = true, features = ["geolibre", "r"] }
 egui = { workspace = true }
 log = { workspace = true }
 serde_json = { workspace = true }

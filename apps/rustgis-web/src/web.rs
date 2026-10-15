@@ -879,6 +879,7 @@ fn services(inbox: Inbox, font_inbox: Inbox, notes: Notes, ctx: egui::Context, e
         inbox: Some(inbox),
         geolibre_manifests: Some(Box::new(move |slot| crate::geolibre::manifests(slot, gl_list_ctx.clone()))),
         geolibre_run: Some(Box::new(move |job, slot| crate::geolibre::run(job, slot, gl_run_ctx.clone()))),
+        r_run: Some(Box::new(crate::r::run)),
         http: Some(Box::new(move |req, slot| {
             let ctx = http_ctx.clone();
             wasm_bindgen_futures::spawn_local(async move {
