@@ -51,7 +51,7 @@ pub fn commands() -> Vec<C> {
     #[cfg(feature = "r")]
     v.push(
         C::new("gp.runR", "Run R Script", "Analyze › Geoprocessing", run_r)
-            .params(r#"{"script": the R code, "inputs"?: [layer names], "args"?: {...} (values for the script)}"#),
+            .params(r#"{"script": the R code, "inputs"?: [layer names], "args"?: {...} (values for the script), "timeout_s"?: seconds}"#),
     );
     #[cfg(feature = "r")]
     v.push(
