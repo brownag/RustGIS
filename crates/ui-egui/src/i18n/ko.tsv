@@ -1319,11 +1319,12 @@ Invert the selection.	선택을 반전합니다.
 IS NULL	IS NULL
 it connects to an address on the internet	인터넷의 주소에 연결하는
 It has no code: nothing in it runs.	코드가 없습니다. 실행되는 것은 없습니다.
-it is reserved to you (plugins, scripts, tasks, models and the GeoLibre runner)	사용자만 실행할 수 있는(플러그인, 스크립트, 작업, 모델, GeoLibre 실행기)
+it is reserved to you (plugins, scripts, tasks, models, R code and the GeoLibre runner)	사용자만 실행할 수 있는(플러그인, 스크립트, 작업, 모델, R 코드, GeoLibre 실행기)
 it reads or writes files on this computer	이 컴퓨터의 파일을 읽거나 쓰는
 it replaces the open project	열려 있는 프로젝트를 바꾸는
 it runs a plugin's command	플러그인의 명령을 실행하는
 It runs in a sandbox with no other access to your computer or the network.	샌드박스에서 실행되며 컴퓨터나 네트워크에 대한 다른 접근 권한은 없습니다.
+it runs R code, which can do anything you can do on this computer	R 코드를 실행합니다. 이 컴퓨터에서 사용자가 할 수 있는 모든 작업을 할 수 있습니다
 It runs: {program}	실행 명령: {program}
 It's in the Symbology pane, open on the step's layer.	심볼 창에 있으며, 이 단계의 레이어로 열려 있습니다.
 It's installed but turned off: turn it on in the Plugin Manager.	설치되었지만 꺼져 있습니다: 플러그인 관리자에서 켜세요.

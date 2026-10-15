@@ -1319,11 +1319,12 @@ Invert the selection.	選択を反転します。
 IS NULL	IS NULL
 it connects to an address on the internet	インターネット上のアドレスに接続する
 It has no code: nothing in it runs.	コードは含まれていません。実行されるものはありません。
-it is reserved to you (plugins, scripts, tasks, models and the GeoLibre runner)	ユーザー本人専用の操作（プラグイン、スクリプト、タスク、モデル、GeoLibre ランナー）である
+it is reserved to you (plugins, scripts, tasks, models, R code and the GeoLibre runner)	ユーザー本人専用の操作（プラグイン、スクリプト、タスク、モデル、R コード、GeoLibre ランナー）である
 it reads or writes files on this computer	このコンピューター上のファイルを読み書きする
 it replaces the open project	開いているプロジェクトを置き換える
 it runs a plugin's command	プラグインのコマンドを実行する
 It runs in a sandbox with no other access to your computer or the network.	サンドボックス内で実行され、コンピューターやネットワークへのその他のアクセスはできません。
+it runs R code, which can do anything you can do on this computer	R コードを実行する。このコンピューターでユーザーができることはすべて実行できる
 It runs: {program}	実行するもの: {program}
 It's in the Symbology pane, open on the step's layer.	この操作は [シンボル] ウィンドウにあり、ステップのレイヤーで開いています。
 It's installed but turned off: turn it on in the Plugin Manager.	インストール済みですが無効になっています: プラグイン マネージャーで有効にしてください。

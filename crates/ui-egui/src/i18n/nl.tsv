@@ -1319,11 +1319,12 @@ Invert the selection.	De selectie omkeren.
 IS NULL	IS NULL
 it connects to an address on the internet	het maakt verbinding met een adres op internet
 It has no code: nothing in it runs.	Het bevat geen code: er wordt niets uitgevoerd.
-it is reserved to you (plugins, scripts, tasks, models and the GeoLibre runner)	het is aan jou voorbehouden (plugins, scripts, taken, modellen en de GeoLibre-runner)
+it is reserved to you (plugins, scripts, tasks, models, R code and the GeoLibre runner)	het is aan jou voorbehouden (plugins, scripts, taken, modellen, R-code en de GeoLibre-runner)
 it reads or writes files on this computer	het leest of schrijft bestanden op deze computer
 it replaces the open project	het vervangt het geopende project
 it runs a plugin's command	het voert een opdracht van een plugin uit
 It runs in a sandbox with no other access to your computer or the network.	De plugin draait in een sandbox zonder verdere toegang tot je computer of het netwerk.
+it runs R code, which can do anything you can do on this computer	het voert R-code uit, die alles kan wat jij op deze computer kunt
 It runs: {program}	Hij voert uit: {program}
 It's in the Symbology pane, open on the step's layer.	Het staat in het symbologievenster, geopend op de laag van de stap.
 It's installed but turned off: turn it on in the Plugin Manager.	Het is geïnstalleerd maar uitgeschakeld: schakel het in via Pluginbeheer.

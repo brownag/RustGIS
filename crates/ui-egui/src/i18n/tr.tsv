@@ -1319,11 +1319,12 @@ Invert the selection.	Seçimi ters çevir.
 IS NULL	IS NULL
 it connects to an address on the internet	internetteki bir adrese bağlanır
 It has no code: nothing in it runs.	Kod içermez: içindeki hiçbir şey çalışmaz.
-it is reserved to you (plugins, scripts, tasks, models and the GeoLibre runner)	yalnızca size ayrılmıştır (eklentiler, betikler, görevler, modeller ve GeoLibre çalıştırıcısı)
+it is reserved to you (plugins, scripts, tasks, models, R code and the GeoLibre runner)	yalnızca size ayrılmıştır (eklentiler, betikler, görevler, modeller, R kodu ve GeoLibre çalıştırıcısı)
 it reads or writes files on this computer	bu bilgisayardaki dosyaları okur veya yazar
 it replaces the open project	açık projeyi değiştirir
 it runs a plugin's command	bir eklentinin komutunu çalıştırır
 It runs in a sandbox with no other access to your computer or the network.	Bilgisayarınıza veya ağa başka hiçbir erişimi olmayan bir korumalı alanda çalışır.
+it runs R code, which can do anything you can do on this computer	R kodu çalıştırır; bu kod, bu bilgisayarda yapabileceğiniz her şeyi yapabilir
 It runs: {program}	Çalıştırdığı: {program}
 It's in the Symbology pane, open on the step's layer.	Adımın katmanında açık olan Semboloji panelinde.
 It's installed but turned off: turn it on in the Plugin Manager.	Yüklü ama kapalı: Eklenti Yöneticisi'nden açın.

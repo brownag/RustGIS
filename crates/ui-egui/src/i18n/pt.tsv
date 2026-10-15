@@ -1319,11 +1319,12 @@ Invert the selection.	Inverter a seleção.
 IS NULL	IS NULL
 it connects to an address on the internet	conecta-se a um endereço na internet
 It has no code: nothing in it runs.	Não tem código: nada nele é executado.
-it is reserved to you (plugins, scripts, tasks, models and the GeoLibre runner)	é reservado a você (plugins, scripts, tarefas, modelos e o executor do GeoLibre)
+it is reserved to you (plugins, scripts, tasks, models, R code and the GeoLibre runner)	é reservado a você (plugins, scripts, tarefas, modelos, código R e o executor do GeoLibre)
 it reads or writes files on this computer	lê ou grava arquivos neste computador
 it replaces the open project	substitui o projeto aberto
 it runs a plugin's command	executa um comando de um plugin
 It runs in a sandbox with no other access to your computer or the network.	Ele é executado em uma sandbox, sem nenhum outro acesso ao seu computador ou à rede.
+it runs R code, which can do anything you can do on this computer	executa código R, que pode fazer tudo o que você pode fazer neste computador
 It runs: {program}	Ele executa: {program}
 It's in the Symbology pane, open on the step's layer.	Está no painel Simbologia, aberto na camada da etapa.
 It's installed but turned off: turn it on in the Plugin Manager.	Está instalado, mas desativado: ative-o no Gerenciador de plugins.

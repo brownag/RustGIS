@@ -1319,11 +1319,12 @@ Invert the selection.	反转选择。
 IS NULL	IS NULL
 it connects to an address on the internet	它会连接到互联网上的地址
 It has no code: nothing in it runs.	它不含代码：其中没有任何内容会运行。
-it is reserved to you (plugins, scripts, tasks, models and the GeoLibre runner)	它仅限您本人执行（插件、脚本、任务、模型和 GeoLibre 运行器）
+it is reserved to you (plugins, scripts, tasks, models, R code and the GeoLibre runner)	它仅限您本人执行（插件、脚本、任务、模型、R 代码和 GeoLibre 运行器）
 it reads or writes files on this computer	它会读取或写入此计算机上的文件
 it replaces the open project	它会替换当前打开的工程
 it runs a plugin's command	它会运行插件的命令
 It runs in a sandbox with no other access to your computer or the network.	它在沙箱中运行，无法以其他方式访问您的计算机或网络。
+it runs R code, which can do anything you can do on this computer	运行 R 代码，它可以做您在这台电脑上能做的任何事
 It runs: {program}	它运行：{program}
 It's in the Symbology pane, open on the step's layer.	它位于符号系统窗格中，该窗格已针对此步骤的图层打开。
 It's installed but turned off: turn it on in the Plugin Manager.	已安装但已停用：请在插件管理器中启用。

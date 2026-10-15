@@ -1319,11 +1319,12 @@ Invert the selection.	Đảo ngược vùng chọn.
 IS NULL	IS NULL
 it connects to an address on the internet	nó kết nối tới một địa chỉ trên internet
 It has no code: nothing in it runs.	Không có mã: không có gì trong đó được chạy.
-it is reserved to you (plugins, scripts, tasks, models and the GeoLibre runner)	nó chỉ dành cho bạn (plugin, tập lệnh, tác vụ, mô hình và trình chạy GeoLibre)
+it is reserved to you (plugins, scripts, tasks, models, R code and the GeoLibre runner)	nó chỉ dành cho bạn (plugin, tập lệnh, tác vụ, mô hình, mã R và trình chạy GeoLibre)
 it reads or writes files on this computer	nó đọc hoặc ghi tệp trên máy tính này
 it replaces the open project	nó thay thế dự án đang mở
 it runs a plugin's command	nó chạy một lệnh của plugin
 It runs in a sandbox with no other access to your computer or the network.	Plugin chạy trong một hộp cát, không có quyền truy cập nào khác vào máy tính của bạn hay mạng.
+it runs R code, which can do anything you can do on this computer	chạy mã R, mã này có thể làm mọi việc mà bạn làm được trên máy tính này
 It runs: {program}	Lệnh chạy: {program}
 It's in the Symbology pane, open on the step's layer.	Nó nằm trong ngăn Ký hiệu, đang mở cho lớp của bước này.
 It's installed but turned off: turn it on in the Plugin Manager.	Đã cài đặt nhưng đang tắt: hãy bật nó trong Trình quản lý plugin.

@@ -1319,11 +1319,12 @@ Invert the selection.	Инвертировать выборку.
 IS NULL	IS NULL
 it connects to an address on the internet	подключается к адресу в интернете
 It has no code: nothing in it runs.	В нём нет кода: ничего не запускается.
-it is reserved to you (plugins, scripts, tasks, models and the GeoLibre runner)	доступно только вам (модули, скрипты, задачи, модели и средство запуска GeoLibre)
+it is reserved to you (plugins, scripts, tasks, models, R code and the GeoLibre runner)	доступно только вам (модули, скрипты, задачи, модели, код R и средство запуска GeoLibre)
 it reads or writes files on this computer	читает или записывает файлы на этом компьютере
 it replaces the open project	заменяет открытый проект
 it runs a plugin's command	запускает команду модуля
 It runs in a sandbox with no other access to your computer or the network.	Он работает в песочнице без какого-либо другого доступа к вашему компьютеру или сети.
+it runs R code, which can do anything you can do on this computer	запускает код R, который может делать на этом компьютере всё, что можете вы
 It runs: {program}	Запускает: {program}
 It's in the Symbology pane, open on the step's layer.	Это на панели символов, открытой для слоя этого шага.
 It's installed but turned off: turn it on in the Plugin Manager.	Он установлен, но отключён: включите его в менеджере модулей.

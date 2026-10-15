@@ -1319,11 +1319,12 @@ Invert the selection.	Balik seleksi.
 IS NULL	IS NULL
 it connects to an address on the internet	terhubung ke alamat di internet
 It has no code: nothing in it runs.	Tidak berisi kode: tidak ada yang dijalankan.
-it is reserved to you (plugins, scripts, tasks, models and the GeoLibre runner)	hanya boleh dilakukan oleh Anda (plugin, skrip, tugas, model, dan runner GeoLibre)
+it is reserved to you (plugins, scripts, tasks, models, R code and the GeoLibre runner)	hanya boleh dilakukan oleh Anda (plugin, skrip, tugas, model, kode R, dan runner GeoLibre)
 it reads or writes files on this computer	membaca atau menulis file di komputer ini
 it replaces the open project	mengganti proyek yang terbuka
 it runs a plugin's command	menjalankan perintah plugin
 It runs in a sandbox with no other access to your computer or the network.	Plugin berjalan di sandbox tanpa akses lain ke komputer Anda atau jaringan.
+it runs R code, which can do anything you can do on this computer	menjalankan kode R, yang dapat melakukan apa pun yang dapat Anda lakukan di komputer ini
 It runs: {program}	Yang dijalankan: {program}
 It's in the Symbology pane, open on the step's layer.	Ada di panel Simbologi, terbuka pada layer langkah ini.
 It's installed but turned off: turn it on in the Plugin Manager.	Sudah terpasang tetapi nonaktif: aktifkan di Pengelola Plugin.

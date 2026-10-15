@@ -1319,11 +1319,12 @@ Invert the selection.	მონიშვნის ინვერსია.
 IS NULL	IS NULL
 it connects to an address on the internet	ის უკავშირდება ინტერნეტის მისამართს
 It has no code: nothing in it runs.	მასში კოდი არ არის: არაფერი არ ეშვება.
-it is reserved to you (plugins, scripts, tasks, models and the GeoLibre runner)	ის დაცულია თქვენთვის (დანამატები, სკრიპტები, დავალებები, მოდელები და GeoLibre-ის გამშვები)
+it is reserved to you (plugins, scripts, tasks, models, R code and the GeoLibre runner)	ის დაცულია თქვენთვის (დანამატები, სკრიპტები, დავალებები, მოდელები, R კოდი და GeoLibre-ის გამშვები)
 it reads or writes files on this computer	ის კითხულობს ან წერს ფაილებს ამ კომპიუტერში
 it replaces the open project	ის ცვლის ღია პროექტს
 it runs a plugin's command	ის უშვებს დანამატის ბრძანებას
 It runs in a sandbox with no other access to your computer or the network.	ის მუშაობს იზოლირებულ გარემოში და თქვენს კომპიუტერსა თუ ქსელზე სხვა წვდომა არ აქვს.
+it runs R code, which can do anything you can do on this computer	უშვებს R კოდს, რომელსაც შეუძლია ყველაფერი, რაც თქვენ შეგიძლიათ ამ კომპიუტერზე
 It runs: {program}	ის უშვებს: {program}
 It's in the Symbology pane, open on the step's layer.	ის სიმბოლიზაციის პანელშია, რომელიც საფეხურის ფენაზეა გახსნილი.
 It's installed but turned off: turn it on in the Plugin Manager.	ის დაინსტალირებულია, მაგრამ გამორთულია: ჩართეთ დანამატების მენეჯერში.
