@@ -218,8 +218,9 @@ pub struct Services {
     /// …and runs one tool in its in-memory `/work` folder, putting the new files and printed
     /// lines in the slot. The desktop app runs tools through the `geolibre` program instead.
     pub geolibre_run: Option<Box<dyn Fn(rustgis_engine::cmd::gp::ExternalRun, Slot<rustgis_engine::cmd::gp::ExternalOutput>)>>,
-    /// Runs one `gp.runR` job (webR in the browser; scaffold) and puts the output JSON
-    /// (or the error) in the slot.
+    /// The browser's R runner: runs one `gp.runR` job and puts the output JSON (or the error) in
+    /// the slot. The web app's is a placeholder that refuses until webR is wired up; the desktop
+    /// runs R inline.
     #[cfg(feature = "r")]
     pub r_run: Option<Box<dyn Fn(rustgis_engine::cmd::gp::RRun, Slot<Result<serde_json::Value, String>>)>>,
     /// Downloads a URL into the slot (the browser's fetch; the desktop downloads on a thread).
@@ -875,7 +876,8 @@ impl RustGisApp {
         {
             log::warn!("{e}");
         }
-        // An Rscript located earlier (Locate Rscript in the Analyze ribbon).
+        // An Rscript chosen earlier (Locate Rscript…).
+        #[cfg(all(feature = "r", not(target_arch = "wasm32")))]
         if let Some(path) = self.services.load_pref.as_ref().and_then(|load| load("rscript")).filter(|p| !p.is_empty())
             && let Err(e) = self.session.run("gp.setRscript", &json!({"path": path}))
         {
@@ -1344,9 +1346,18 @@ impl RustGisApp {
         // of another, so it ends when the open layout changes (or layouts come and go).
         let open_layout = |app: &Self| (app.session.active_layout, app.session.project.layouts.len());
         let layout_before = open_layout(self);
+        // The Rscript path, read before `params` is handed on (empty clears the choice).
+        #[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+        let rscript = (id == "gp.setRscript").then(|| params.get("path").and_then(Value::as_str).unwrap_or("").trim().to_string());
         let r = if id.starts_with("ui.") { self.run_ui(id, &params) } else { self.session.run(id, &params) };
         if let Err(e) = &r {
             log::info!("{id}: {e}");
+        }
+        #[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+        if let (Ok(_), Some(path)) = (&r, rscript)
+            && let Some(save) = &self.services.save_pref
+        {
+            save("rscript", &path);
         }
         // A project replacing this one hasn't been saved in the browser yet (opening a file
         // names it again).
@@ -1835,6 +1846,13 @@ impl RustGisApp {
                     let text = i18n::fmt("MCP relay listening on 127.0.0.1:{port}", &[("port", &relay.port().to_string())]);
                     self.session.notify(text, false);
                     self.relay = Some(relay);
+                }
+            }
+            #[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+            "ui.locateRscript" => {
+                if let Some(path) = rfd::FileDialog::new().set_title(tl!("Locate the Rscript program")).pick_file() {
+                    let path = path.display().to_string();
+                    return self.run("gp.setRscript", json!({"path": path}));
                 }
             }
             "ui.plugins" => {
@@ -3218,6 +3236,10 @@ impl RustGisApp {
             } else if self.fonts_pending {
                 ctx.request_repaint();
             }
+        }
+        // The engine's programs (R) get the language the interface is drawn in.
+        if self.session.lang != self.shown_lang.code() {
+            self.session.lang = self.shown_lang.code().to_string();
         }
         if self.ui.dark_follows_system
             && let Some(system) = ctx.system_theme()

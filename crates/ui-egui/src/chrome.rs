@@ -906,6 +906,14 @@ pub fn command_search(app: &mut RustGisApp, ctx: &egui::Context) {
                 hits.push((id.into(), tl!(label).into(), crate::i18n::location(loc)));
             }
         }
+        // Native only: the picker for the R program.
+        #[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+        {
+            let (id, label, loc) = ("ui.locateRscript", "Locate Rscript…", "Analyze › Geoprocessing");
+            if ql.is_empty() || label.to_lowercase().contains(&ql) || tl!(label).to_lowercase().contains(&ql) {
+                hits.push((id.into(), tl!(label).into(), crate::i18n::location(loc)));
+            }
+        }
         // The ribbon location is dropped when the palette is too narrow to show it.
         let show_loc = width >= 400.0;
         // A solid scroll bar takes its own gutter instead of floating over the locations.
