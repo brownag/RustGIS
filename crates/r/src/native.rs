@@ -4,7 +4,7 @@
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 use std::time::{Duration, Instant};
 
 use crate::job::build_job_files;
@@ -84,18 +84,13 @@ impl RScriptRunner for RscriptRunner {
         let limit = clamp_timeout(input.timeout_s);
         let log = File::create(dir.join(LOG_FILE)).map_err(fail)?;
         let log_err = log.try_clone().map_err(fail)?;
-        let mut cmd = Command::new(program);
+        let mut cmd = crate::discover::command(&program);
         cmd.args(["--no-save", "--no-restore", "--no-init-file", "bootstrap.R"])
             .current_dir(dir)
             .stdin(Stdio::null())
             .stdout(log)
-            .stderr(log_err);
-        #[cfg(windows)]
-        {
-            use std::os::windows::process::CommandExt;
-            const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-            cmd.creation_flags(CREATE_NO_WINDOW);
-        }
+            .stderr(log_err)
+            .env("LANGUAGE", crate::job::r_language(&input.lang));
         let mut child = cmd.spawn().map_err(fail)?;
         let start = Instant::now();
         let status = loop {

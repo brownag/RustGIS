@@ -20,7 +20,7 @@ fn program_name() -> &'static str {
 }
 
 /// A command for the program, without a console window on Windows.
-fn command(exe: &Path) -> Command {
+pub(crate) fn command(exe: &Path) -> Command {
     #[allow(unused_mut)]
     let mut c = Command::new(exe);
     #[cfg(windows)]

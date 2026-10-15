@@ -286,3 +286,48 @@ fn a_million_rows_are_accepted_and_one_more_is_not() -> TestResult {
     assert!(convert_output(&bare(&big(over)), &rows_of).is_err());
     Ok(())
 }
+
+#[test]
+fn printed_lines_follow_the_manifest_messages() -> TestResult {
+    let manifest = json!({"version": 1, "ok": true, "selection": {"layer": "Cities", "rows": [1]},
+        "messages": [{"level": "info", "text": "msg1"}, {"level": "info", "text": "msg2"}]});
+    let mut out = bare(&manifest);
+    out.stdout = "a\n\n   \nb  \n".into();
+    let result = convert_output(&out, &cities_rows)?;
+    assert_eq!(result.messages, vec!["msg1", "msg2", "a", "b"]);
+    Ok(())
+}
+
+#[test]
+fn printed_lines_are_capped_oldest_first() -> TestResult {
+    let manifest = json!({"version": 1, "ok": true, "selection": {"layer": "Cities", "rows": [1]},
+        "messages": [{"text": "m1"}, {"text": "m2"}, {"text": "m3"}]});
+    let mut out = bare(&manifest);
+    out.stdout = (0..MAX_MESSAGES + 10).map(|i| format!("line {i}")).collect::<Vec<_>>().join("\n");
+    let result = convert_output(&out, &cities_rows)?;
+    assert_eq!(result.messages.len(), MAX_MESSAGES);
+    assert_eq!(result.messages.get(..3), Some(&["m1".to_string(), "m2".to_string(), "m3".to_string()][..]));
+    assert_eq!(result.messages.get(3).map(String::as_str), Some("line 13"));
+    assert_eq!(result.messages.last().map(String::as_str), Some("line 1009"));
+    Ok(())
+}
+
+#[test]
+fn long_printed_line_is_cut_on_a_character_boundary() -> TestResult {
+    let mut out = bare(&json!({"version": 1, "ok": true, "selection": {"layer": "Cities", "rows": [1]}}));
+    let long = "é".repeat(3000);
+    out.stdout = long.clone();
+    let result = convert_output(&out, &cities_rows)?;
+    let text = result.messages.first().ok_or("no message")?;
+    assert!(text.len() <= 4096 && long.starts_with(text.as_str()));
+    assert!(text.chars().all(|c| c == 'é'));
+    Ok(())
+}
+
+#[test]
+fn failed_manifest_ignores_printed_lines() -> TestResult {
+    let mut out = bare(&json!({"version": 1, "ok": false, "error": "boom"}));
+    out.stdout = "printed".into();
+    assert_eq!(failure(&out)?, "boom");
+    Ok(())
+}

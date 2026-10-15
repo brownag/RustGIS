@@ -49,7 +49,7 @@ fn convert_manifest(out: &RExecutionOutput, rows_of: &dyn Fn(&str) -> Option<Vec
     if layers.is_empty() == selection.is_none() {
         return Err("the R result must list layers or a selection, not both and not neither".into());
     }
-    let messages = convert_messages(manifest.get("messages"))?;
+    let mut messages = convert_messages(manifest.get("messages"))?;
 
     let output = match selection {
         Some(sel) => convert_selection(sel, rows_of)?,
@@ -64,7 +64,14 @@ fn convert_manifest(out: &RExecutionOutput, rows_of: &dyn Fn(&str) -> Option<Vec
             Output::Layers(converted)
         }
     };
+    messages.extend(convert_printed(&out.stdout, MAX_MESSAGES.saturating_sub(messages.len())));
     Ok(ToolResult { output, messages })
+}
+
+/// The last `room` non-blank printed lines, each cut to `MAX_MESSAGE_BYTES`. The oldest go first.
+fn convert_printed(stdout: &str, room: usize) -> Vec<String> {
+    let lines: Vec<&str> = stdout.lines().map(str::trim_end).filter(|l| !l.is_empty()).collect();
+    lines.iter().rev().take(room).rev().map(|line| truncate_text(line, MAX_MESSAGE_BYTES).to_string()).collect()
 }
 
 /// The file at `path` among a script's output files.
