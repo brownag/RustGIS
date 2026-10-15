@@ -1318,15 +1318,76 @@ fn r_run_failure_leaves_project_untouched() {
     assert_eq!(s.project.tables.len(), tables, "no table added");
 }
 
+/// Whether R with jsonlite and sf is ready for the R-backed tests. Prints a skip message when not.
+#[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+fn r_ready() -> bool {
+    if rustgis_r::ready().is_ok() {
+        return true;
+    }
+    eprintln!("skipped: Rscript with jsonlite and sf not available");
+    false
+}
+
+#[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+#[test]
+fn gp_run_r_runs_inline_and_adds_a_table() {
+    if !r_ready() {
+        return;
+    }
+    let mut s = world();
+    let tables = s.project.tables.len();
+    let script = "rgis_write_table(data.frame(name = c(\"alpha\", \"beta\"), score = c(3, 4)), \"Stats\")";
+    s.run("gp.runR", &json!({"script": script})).unwrap();
+    assert_eq!(s.project.tables.len(), tables + 1);
+    assert!(s.project.tables.iter().any(|t| t.name == "Stats"));
+    assert!(s.r_running.is_none());
+    s.run("edit.undo", &Value::Null).unwrap();
+    assert_eq!(s.project.tables.len(), tables, "undo removes it");
+}
+
+#[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+#[test]
+fn gp_run_r_failure_leaves_project_untouched() {
+    if !r_ready() {
+        return;
+    }
+    let mut s = world();
+    let layers = s.map().layers.len();
+    let tables = s.project.tables.len();
+    let undo = s.undo_label();
+    let e = s.run("gp.runR", &json!({"script": "stop(\"boom\")"})).unwrap_err();
+    assert!(e.contains("boom"), "{e}");
+    assert_eq!(s.map().layers.len(), layers, "no layer added");
+    assert_eq!(s.project.tables.len(), tables, "no table added");
+    assert_eq!(s.undo_label(), undo, "no undo step added");
+    assert!(s.r_running.is_none());
+}
+
 #[cfg(feature = "r")]
 #[test]
-fn gp_run_r_refuses_and_starts_nothing() {
-    use crate::cmd::gp::r_start;
-    let mut s = with_raster();
-    assert!(s.run("gp.runR", &json!({"script": "1"})).is_err());
-    assert!(r_start(&mut s, &json!({"script": "1"})).unwrap().is_some(), "nothing was left queued");
-    let e = r_start(&mut s, &json!({"script": "1", "inputs": ["No such layer"]})).unwrap_err();
-    assert!(e.contains("no layer named"), "{e}");
+fn gp_run_r_checks_inputs_before_running() {
+    let mut s = world();
+    let e = s.run("gp.runR", &json!({"script": "1", "inputs": ["Nope"]})).unwrap_err();
+    assert!(e.contains("no layer named 'Nope'"), "{e}");
+    assert!(s.r_running.is_none());
+    assert!(s.started.is_empty(), "nothing started");
+}
+
+#[cfg(feature = "r")]
+#[test]
+fn gp_run_r_refuses_an_empty_script() {
+    let mut s = world();
+    assert!(s.run("gp.runR", &json!({"script": "  "})).is_err());
+    assert!(s.r_running.is_none());
+    assert!(s.started.is_empty(), "nothing started");
+}
+
+#[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+#[test]
+fn set_rscript_refuses_a_program_that_is_not_rscript() {
+    let mut s = world();
+    assert!(s.run("gp.setRscript", &json!({"path": "/no/such/Rscript"})).is_err(), "not a program");
+    assert!(s.run("gp.setRscript", &json!({"path": ""})).is_ok(), "an empty path clears the choice");
 }
 
 #[test]
@@ -3997,8 +4058,16 @@ fn plugin_edits_are_one_undo_step() {
     assert!(forward(&mut s, "eng-edit", "layer.remove", json!({"layer": "Nope"})).is_err());
     assert_eq!(s.map().layers.len(), n);
     // Some things are off limits whatever the permissions.
-    for op in ["script.run", "project.new", "edit.undo", "plugin.uninstall", "plugin:eng-edit/h", "gp.setGeolibre", "gp.uninstallGeolibre"]
-    {
+    for op in [
+        "script.run",
+        "project.new",
+        "edit.undo",
+        "plugin.uninstall",
+        "plugin:eng-edit/h",
+        "gp.setGeolibre",
+        "gp.uninstallGeolibre",
+        "gp.setRscript",
+    ] {
         assert!(forward(&mut s, "eng-edit", op, json!({})).is_err(), "{op}");
     }
     // Files need their own permission.
@@ -4462,6 +4531,7 @@ fn process_plugins_reach_the_project_like_modules() {
 fn r_code_is_reserved_to_the_user() {
     use crate::cmd::plugins::{runs_r, user_only};
     assert!(user_only("gp.runR"));
+    assert!(user_only("gp.setRscript"));
     for (id, p) in
         [("gp.runR", json!({})), ("GP.RUNR", json!({})), ("gp.run", json!({"tool": "r:x"})), ("gp.run", json!({"tool": " R:Kriging"}))]
     {
@@ -12490,12 +12560,10 @@ fn scans_have_no_coordinates_to_give_away() {
 
 #[cfg(feature = "r")]
 #[test]
-fn r_script_runs_are_refused() {
+fn r_script_params_are_checked() {
     let mut s = world();
     assert!(s.run("gp.runR", &json!({})).is_err(), "a script is required");
     assert!(s.run("gp.runR", &json!({"script": "  "})).is_err(), "an empty script is refused");
     assert!(s.run("gp.runR", &json!({"script": "1+1", "inputs": ["No such layer"]})).is_err());
     assert!(s.run("gp.runR", &json!({"script": "1+1", "args": [1]})).is_err(), "args must be an object");
-    let e = s.run("gp.runR", &json!({"script": "1+1", "inputs": ["Countries"], "args": {"k": 1}})).unwrap_err();
-    assert!(e.contains("R scripts can't run in this build yet"), "{e}");
 }
