@@ -76,7 +76,7 @@ else `RUSTGIS_ASSISTANT_PROVIDER`, else the first with a key in the environment,
 ChatGPT sign-in is used only when chosen).
 `--model` and `--base-url` override the defaults. The answer goes to standard output and each
 command the assistant ran to standard error. Commands that read or write files or use the
-network are declined unless you pass `--yes`; plugin commands, scripts, tasks, models and
+network are declined unless you pass `--yes`; plugin commands, scripts, tasks, models, R code and
 replacing the project are always declined here. `--trace log.txt` appends each request and response
 body (never the headers, which carry the key) to a file. `--login` signs in with ChatGPT in
 the browser, so `--provider chatgpt` uses your ChatGPT plan (`--another-account` registers RustGIS

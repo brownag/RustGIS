@@ -61,8 +61,8 @@ described below, and RustGIS checks each one:
   The addresses are the plugin's choice and can carry what it read from the project, so this is
   a permission of its own. A command that would bring in a tile layer some other way (importing
   a map file) has it taken out again without `network`.
-- No plugin may run the user's scripts, tasks or models, install or locate other software,
-  manage plugins, replace the project, or step through undo history.
+- No plugin may run the user's scripts, tasks or models, run R code, install or locate other
+  software, manage plugins, replace the project, or step through undo history.
 
 A [process plugin](#process-plugins) is the exception: it is a program on your computer, not
 sandboxed, and the install prompt says so.

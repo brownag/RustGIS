@@ -335,9 +335,9 @@ Your agent asks you before each tool call, and the server adds its own limits:
   text (it could bring in web layers). Without it, the agent can still work with the data you
   gave the server and with the built-in sample, basemaps and geoprocessing. `view_map` draws
   the web tile layers the project you opened already has, fetching their tiles.
-- Plugin management, scripts, tasks, models and the GeoLibre runner are never run from here,
-  unless you turned on **Full access** for agents in the desktop app. That applies only to agents
-  attached to it with the relay's own token.
+- Plugin management, scripts, tasks, models, R code (`gp.runR` and the `r:` tools) and the
+  GeoLibre runner are never run from here, unless you turned on **Full access** for agents in the
+  desktop app. That applies only to agents attached to it with the relay's own token.
 - In private-server mode, opening, replacing and undoing in the project are allowed: the project
   is the agent's own. With `--attach`, these operations affect the project open in the desktop app.
 

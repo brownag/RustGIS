@@ -995,6 +995,9 @@ fn docs_pages_and_addresses() {
     while let Some(d) = dirs.pop() {
         for e in std::fs::read_dir(&d).unwrap().flatten() {
             let p = e.path();
+            if p == root.join("rfcs") {
+                continue; // design records (RFCs), not user docs
+            }
             if p.is_dir() {
                 dirs.push(p);
             } else if p.extension().is_some_and(|x| x == "md") {

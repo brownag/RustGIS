@@ -17,9 +17,10 @@ RustGIS commands and geoprocessing tools for you:
 Each step it takes shows in the conversation (click one to see its parameters and result), and
 each change is one undo step, so Ctrl+Z takes back anything you don't want. It never says it
 changed the map unless a command succeeded. Commands that would read or write files, connect to
-an address on the internet, run a plugin, script or task, or replace the project wait for you:
-**Allow** or **Decline**. File and network access can be allowed for the rest of the
-conversation, for that exact command and file or address only. Enter sends, Shift+Enter
+an address on the internet, run a plugin, script or task, run R code, or replace the project
+wait for you: **Allow** or **Decline**. File and network access can be allowed for the rest of
+the conversation, for that exact command and file or address only. R code is asked about every
+time; it can't be allowed for the rest of the conversation. Enter sends, Shift+Enter
 starts a new line, Up and Down recall earlier messages, and **Stop** ends a run.
 
 From the command line, `rustgis-cli ask` sends one request (see
