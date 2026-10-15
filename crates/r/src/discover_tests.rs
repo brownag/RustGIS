@@ -51,3 +51,17 @@ fn ready_is_ok_or_names_the_missing_package() {
         Err(msg) => assert!(msg.contains("install.packages("), "{msg}"),
     }
 }
+
+#[test]
+fn ready_is_ok_when_r_is_present() {
+    let Some((exe, version)) = find() else {
+        println!("skipped: Rscript not available");
+        return;
+    };
+    assert!(!version.is_empty(), "the R version is empty");
+    let first = ready();
+    assert!(first.is_ok(), "{first:?}");
+    assert_eq!(first.as_ref().ok(), Some(&exe));
+    let second = ready();
+    assert!(second.is_ok(), "second ready() call: {second:?}");
+}
