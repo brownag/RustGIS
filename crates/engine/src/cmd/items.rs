@@ -682,6 +682,7 @@ pub(crate) fn touches_files(command: &str, params: &Value) -> bool {
         // Its inputs may be bare file names, which don't look like paths.
         || id == "raster.mosaic"
         || reaches(params)
+        || super::plugins::runs_r(command, params)
 }
 
 /// Parameters without a built-in tool's output layer name, which stays in the session, so a task

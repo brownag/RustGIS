@@ -4376,6 +4376,73 @@ fn process_plugins_reach_the_project_like_modules() {
 }
 
 #[test]
+fn r_code_is_reserved_to_the_user() {
+    use crate::cmd::plugins::{runs_r, user_only};
+    assert!(user_only("gp.runR"));
+    for (id, p) in
+        [("gp.runR", json!({})), ("GP.RUNR", json!({})), ("gp.run", json!({"tool": "r:x"})), ("gp.run", json!({"tool": " R:Kriging"}))]
+    {
+        assert!(runs_r(id, &p), "{id} {p}");
+    }
+    for (id, p) in [("gp.run", json!({"tool": "buffer"})), ("gp.run", json!({"tool": 5})), ("gp.run", Value::Null)] {
+        assert!(!runs_r(id, &p), "{id} {p}");
+    }
+    // A plugin with every permission still can't run R.
+    let mut s = world();
+    plugin("eng-r-policy", &["edit", "files", "network"]);
+    let e = forward(&mut s, "eng-r-policy", "gp.run", json!({"tool": "r:x"})).unwrap_err();
+    assert!(e.contains("R code"), "{e}");
+    // A task from a file is refused its R step until the user trusts it.
+    let step = |command: &str, params: Value| crate::project::TaskStep {
+        title: "Kriging".into(),
+        instructions: String::new(),
+        command: command.into(),
+        params,
+    };
+    s.project.tasks.push(crate::project::Task {
+        name: "Kriging".into(),
+        description: String::new(),
+        steps: vec![step("gp.run", json!({"tool": "r:x"}))],
+    });
+    let e = s.run("task.run", &json!({"task": "Kriging"})).unwrap_err();
+    assert!(e.contains("a task from a file can't do"), "{e}");
+    s.trusted_tasks.insert("kriging".into());
+    if let Err(e) = s.run("task.run", &json!({"task": "Kriging"})) {
+        assert!(!e.contains("a task from a file can't do") && !e.contains("R code"), "{e}");
+    }
+    // Same for a model from a file.
+    s.project.models.push(crate::project::Model {
+        name: "Kriging".into(),
+        steps: vec![crate::project::ModelStep { tool: "r:x".into(), params: json!({}) }],
+    });
+    let e = s.run("model.run", &json!({"name": "Kriging"})).unwrap_err();
+    assert!(e.contains("runs R code"), "{e}");
+    s.trusted_models.insert("kriging".into());
+    if let Err(e) = s.run("model.run", &json!({"name": "Kriging"})) {
+        assert!(!e.contains("runs R code") && !e.contains("a model from a file can't do"), "{e}");
+    }
+    // And a notebook from a file: its R line is refused when the cell runs.
+    s.run("notebook.new", &json!({"name": "Kriging"})).unwrap();
+    s.trusted_notebooks.remove("kriging");
+    s.run("notebook.addCell", &json!({"notebook": "Kriging", "source": "gp.run {\"tool\":\"r:x\"}"})).unwrap();
+    let nb = s.project.notebooks.iter().find(|nb| nb.name == "Kriging").unwrap();
+    let k = nb.cells.len() - 1;
+    s.run("notebook.run", &json!({"notebook": "Kriging", "cell": k})).ok();
+    let c = &s.project.notebooks.iter().find(|nb| nb.name == "Kriging").unwrap().cells[k];
+    assert!(c.error, "the R cell fails");
+    assert!(c.output.as_deref().is_some_and(|o| o.contains("a notebook from a file can't do")), "{:?}", c.output);
+}
+
+#[cfg(feature = "r")]
+#[test]
+fn r_code_registered_is_refused_to_plugins() {
+    let mut s = world();
+    plugin("eng-r-registered", &["edit", "files", "network"]);
+    let e = forward(&mut s, "eng-r-registered", "gp.runR", json!({"script": "1"})).unwrap_err();
+    assert!(e.contains("R code"), "{e}");
+}
+
+#[test]
 fn plugins_install_and_uninstall_from_files() {
     isolate_plugins();
     let mut s = Session::new(Project::default());

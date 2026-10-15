@@ -269,6 +269,8 @@ const NEVER: &[&str] = &[
     "project.fromTemplate",
     "edit.undo",
     "edit.redo",
+    // R code can do anything the user can on this computer.
+    "gp.runR",
     // Credentials: a plugin never sets where the user's are sent.
     "s3.connect",
     "s3.disconnect",
@@ -310,11 +312,32 @@ pub enum Reach {
     Network,
 }
 
-/// Whether `id` is reserved to the user: plugin management, the GeoLibre runner, the user's own
-/// automation (scripts, tasks, models run with the user's trust), and replacing the project or
-/// stepping through its undo history. Plugins never run these; the AI assistant asks first.
+/// Whether `id` is reserved to the user: plugin management, the GeoLibre runner, R code, the
+/// user's own automation (scripts, tasks, models run with the user's trust), and replacing the
+/// project or stepping through its undo history. Plugins never run these; the AI assistant asks
+/// first.
 pub fn user_only(id: &str) -> bool {
     id.starts_with("plugin.") || NEVER.contains(&id)
+}
+
+/// The prefix of every R tool id (`r:Kriging`).
+pub const R_TOOL_PREFIX: &str = "r:";
+
+/// Whether `tool` is an R tool: its id starts with [`R_TOOL_PREFIX`], ignoring case and spaces.
+pub fn is_r_tool(tool: &str) -> bool {
+    let t = tool.trim();
+    t.get(..R_TOOL_PREFIX.len()).is_some_and(|p| p.eq_ignore_ascii_case(R_TOOL_PREFIX))
+}
+
+/// Whether running `id` with `params` runs R code: `gp.runR`, or `gp.run` with an R tool.
+pub fn runs_r(id: &str, params: &Value) -> bool {
+    id.eq_ignore_ascii_case("gp.runR")
+        || (id.eq_ignore_ascii_case("gp.run") && params.get("tool").and_then(Value::as_str).is_some_and(is_r_tool))
+}
+
+/// Whether `id` with `params` is reserved to the user: [`user_only`], or running R code.
+pub fn user_only_call(id: &str, params: &Value) -> bool {
+    user_only(id) || runs_r(id, params)
 }
 
 /// What running `spec` with `params` reaches beyond the project, if anything: by what the
@@ -351,8 +374,12 @@ pub fn reaches(spec: &C, params: &Value) -> Option<Reach> {
 /// Why a plugin may not run `id` with `params`, if it may not.
 fn refused(plugin: &Plugin, spec: &C, params: &Value) -> Option<String> {
     let m = &plugin.manifest;
-    if user_only(spec.id) {
-        return Some(format!("plugins can't run '{}'", spec.id));
+    if user_only_call(spec.id, params) {
+        return Some(if runs_r(spec.id, params) {
+            "plugins can't run R code".to_string()
+        } else {
+            format!("plugins can't run '{}'", spec.id)
+        });
     }
     // An SQL query reads files and web addresses alike, and a database is a file or a server.
     if DATABASES.contains(&spec.id) && !(m.has(Permission::Files) && m.has(Permission::Network)) {
