@@ -153,7 +153,9 @@ pub fn r_complete(s: &mut Session, id: u64, ran: Result<rustgis_r::RExecutionOut
     let job = match job {
         ExternalJob::R(job) => job,
         #[cfg(feature = "geolibre")]
-        ExternalJob::GeoLibre(_) => return Err("the R script's run was dropped (its project was closed, or too many runs were waiting)".into()),
+        ExternalJob::GeoLibre(_) => {
+            return Err("the R script's run was dropped (its project was closed, or too many runs were waiting)".into());
+        }
     };
     if s.r_running == Some(id) {
         s.r_running = None;

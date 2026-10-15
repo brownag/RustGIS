@@ -1246,6 +1246,89 @@ fn geolibre_runs_can_finish_asynchronously() {
     assert!(external_complete(&mut s, run.id, Ok((vec![], vec![]))).unwrap_err().contains("project was closed"));
 }
 
+/// The output of an R script that writes one table (`out/1.csv`), listed in its manifest.
+#[cfg(feature = "r")]
+fn r_table_output() -> rustgis_r::RExecutionOutput {
+    let manifest = json!({
+        "version": 1,
+        "ok": true,
+        "error": null,
+        "layers": [{"name": "Stats", "file": "out/1.csv", "kind": "table", "format": "csv"}],
+        "messages": []
+    });
+    rustgis_r::RExecutionOutput {
+        files: vec![
+            rustgis_r::RFile { path: "out/manifest.json".into(), data: manifest.to_string().into_bytes() },
+            rustgis_r::RFile { path: "out/1.csv".into(), data: b"name,score\nalpha,3\nbeta,4\n".to_vec() },
+        ],
+        ..Default::default()
+    }
+}
+
+#[cfg(feature = "r")]
+#[test]
+fn r_runs_can_finish_asynchronously() {
+    use crate::cmd::gp::{r_complete, r_start};
+    let mut s = with_raster();
+    let tables = s.project.tables.len();
+    let run = r_start(&mut s, &json!({"script": "1"})).unwrap().unwrap();
+    assert!(r_complete(&mut s, run.id, Ok(r_table_output())).unwrap().is_none());
+    let r = s.run("gp.finish", &json!({"id": run.id})).unwrap();
+    assert_eq!(s.project.tables.len(), tables + 1, "{r}");
+    s.run("edit.undo", &Value::Null).unwrap();
+    assert_eq!(s.project.tables.len(), tables, "undo removes it");
+}
+
+#[cfg(feature = "r")]
+#[test]
+fn r_runs_queue_one_at_a_time() {
+    use crate::cmd::gp::{r_complete, r_start};
+    // The second run waits; when the first completes, the second is handed back to launch.
+    let mut s = with_raster();
+    let first = r_start(&mut s, &json!({"script": "1"})).unwrap().unwrap();
+    assert!(r_start(&mut s, &json!({"script": "2"})).unwrap().is_none(), "the second waits");
+    let next = r_complete(&mut s, first.id, Ok(r_table_output())).unwrap().unwrap();
+    assert_eq!(next.id, first.id + 1, "ids count up per start");
+    assert_eq!(next.input.script, "2", "the waiting run is handed back");
+
+    // The queue holds at most MAX_ASYNC_RUNS R runs: the 9th start is refused (MAX is 8).
+    let mut s = with_raster();
+    let mut refused_at = None;
+    for n in 1..=9 {
+        if let Err(e) = r_start(&mut s, &json!({"script": n.to_string()})) {
+            assert!(e.contains("too many R scripts are waiting"), "{e}");
+            refused_at = Some(n);
+            break;
+        }
+    }
+    assert!(refused_at.is_some_and(|n| n <= 9), "the cap refuses a start by the 9th");
+}
+
+#[cfg(feature = "r")]
+#[test]
+fn r_run_failure_leaves_project_untouched() {
+    use crate::cmd::gp::{r_complete, r_start};
+    let mut s = with_raster();
+    let layers = s.map().layers.len();
+    let tables = s.project.tables.len();
+    let run = r_start(&mut s, &json!({"script": "1"})).unwrap().unwrap();
+    assert!(r_complete(&mut s, run.id, Err("trap".into())).unwrap().is_none());
+    assert_eq!(s.run("gp.finish", &json!({"id": run.id})).unwrap_err(), "R script: trap");
+    assert_eq!(s.map().layers.len(), layers, "no layer added");
+    assert_eq!(s.project.tables.len(), tables, "no table added");
+}
+
+#[cfg(feature = "r")]
+#[test]
+fn gp_run_r_refuses_and_starts_nothing() {
+    use crate::cmd::gp::r_start;
+    let mut s = with_raster();
+    assert!(s.run("gp.runR", &json!({"script": "1"})).is_err());
+    assert!(r_start(&mut s, &json!({"script": "1"})).unwrap().is_some(), "nothing was left queued");
+    let e = r_start(&mut s, &json!({"script": "1", "inputs": ["No such layer"]})).unwrap_err();
+    assert!(e.contains("no layer named"), "{e}");
+}
+
 #[test]
 fn clipboard_copies_cuts_and_pastes_features() {
     let mut s = world();
@@ -12407,15 +12490,12 @@ fn scans_have_no_coordinates_to_give_away() {
 
 #[cfg(feature = "r")]
 #[test]
-fn r_script_stub_runs() {
+fn r_script_runs_are_refused() {
     let mut s = world();
     assert!(s.run("gp.runR", &json!({})).is_err(), "a script is required");
     assert!(s.run("gp.runR", &json!({"script": "  "})).is_err(), "an empty script is refused");
     assert!(s.run("gp.runR", &json!({"script": "1+1", "inputs": ["No such layer"]})).is_err());
     assert!(s.run("gp.runR", &json!({"script": "1+1", "args": [1]})).is_err(), "args must be an object");
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        let out = s.run("gp.runR", &json!({"script": "1+1", "inputs": ["Countries"], "args": {"k": 1}})).unwrap();
-        assert_eq!(out["metadata"]["stub"], json!(true));
-    }
+    let e = s.run("gp.runR", &json!({"script": "1+1", "inputs": ["Countries"], "args": {"k": 1}})).unwrap_err();
+    assert!(e.contains("R scripts can't run in this build yet"), "{e}");
 }
