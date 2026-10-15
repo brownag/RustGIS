@@ -232,6 +232,12 @@ pub fn external_load_manifests(json: &str) -> Result<usize, String> {
 /// How many asynchronous runs (started, or finished and not yet applied) the session keeps.
 const MAX_ASYNC_RUNS: usize = 8;
 
+/// The job behind an asynchronous run, kept until its runner's output comes back.
+#[cfg(feature = "geolibre")]
+pub(crate) enum ExternalJob {
+    GeoLibre(rustgis_geolibre::Job),
+}
+
 /// A GeoLibre run to carry out asynchronously (the browser's WASI runner): run `tool` with
 /// `argv` in a working folder `/work` holding `files`, then pass the new files and the printed
 /// lines to [`external_complete`] with `id`.
@@ -259,7 +265,7 @@ pub fn external_start(s: &mut Session, tool: &str, params: &Value) -> Result<Ext
         s.next_pending = s.next_pending.wrapping_add(1);
         let id = s.next_pending;
         let run = ExternalRun { id, tool: job.tool.clone(), argv: job.argv("/work"), files: job.files.clone() };
-        s.started.push((id, job, params, now_ms()));
+        s.started.push((id, ExternalJob::GeoLibre(job), params, now_ms()));
         // A run whose runner never answers is dropped eventually (it holds its input files).
         if s.started.len() > MAX_ASYNC_RUNS {
             s.started.remove(0);
@@ -283,7 +289,7 @@ pub fn external_complete(s: &mut Session, id: u64, ran: ExternalOutput) -> Resul
             .iter()
             .position(|(n, ..)| *n == id)
             .ok_or("the tool's run was dropped (its project was closed, or too many runs were waiting)")?;
-        let (_, job, params, t0) = s.started.remove(i);
+        let (_, ExternalJob::GeoLibre(job), params, t0) = s.started.remove(i);
         // Reading the runner's files back parses outside `Session::run`'s guard: a bug in a
         // reader must not take the app down.
         let result = ran.map_err(|e| format!("{}: {e}", job.name)).and_then(|(files, lines)| {

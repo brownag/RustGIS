@@ -389,7 +389,7 @@ struct PutAside {
     /// the previous project mustn't land in the next one.
     pending: Vec<PendingRun>,
     #[cfg(feature = "geolibre")]
-    started: Vec<(u64, rustgis_geolibre::Job, serde_json::Value, u64)>,
+    started: Vec<(u64, cmd::gp::ExternalJob, serde_json::Value, u64)>,
     plugin_runs: Vec<cmd::gp::StartedRun>,
     downloading: Vec<u64>,
     downloaded: Vec<(u64, Vec<u8>)>,
@@ -505,8 +505,9 @@ pub struct Session {
     pub(crate) pending: Vec<PendingRun>,
     pub(crate) next_pending: u64,
     /// Asynchronous runs started and not yet complete: (id, job, resolved params, start time).
+    /// GeoLibre and R runs share this queue.
     #[cfg(feature = "geolibre")]
-    pub(crate) started: Vec<(u64, rustgis_geolibre::Job, serde_json::Value, u64)>,
+    pub(crate) started: Vec<(u64, cmd::gp::ExternalJob, serde_json::Value, u64)>,
     /// Plugin tool runs started and not yet complete (`gp::plugin_start`).
     pub(crate) plugin_runs: Vec<cmd::gp::StartedRun>,
     /// Plugins' panels, by plugin id: the widgets' values and what the plugin last said about
