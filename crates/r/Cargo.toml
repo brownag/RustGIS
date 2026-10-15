@@ -3,7 +3,7 @@ name = "rustgis-r"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "RustGIS L3: the R script runner (scaffold): the execution data model and a stub runner, with a webR hook planned for the browser"
+description = "RustGIS L3: the R script runner: the script and data model, and a runner that runs scripts with a native Rscript (the browser refuses them until webR is wired up)"
 
 [lints]
 workspace = true

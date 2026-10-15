@@ -1,5 +1,6 @@
-//! The R script runner, scaffold only: the script and data model, the [`RScriptRunner`] trait,
-//! and stub runners. Native runs no R code yet; the browser runner reports `Unsupported`.
+//! The R script runner: the script and data model, the [`RScriptRunner`] trait, and the runners.
+//! Native builds run a script with the `Rscript` program in a fresh job folder (`native.rs`). The
+//! browser runner refuses every script until webR is wired up (`web.rs`).
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
