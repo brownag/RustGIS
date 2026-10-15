@@ -35,6 +35,9 @@ rfd = { workspace = true }
 [target.'cfg(unix)'.dependencies]
 rustix = { version = "1.1", features = ["process"] }
 
+[features]
+r = ["rustgis-engine/r"]
+
 [dev-dependencies]
 tempfile = "3"
 rustgis-plugins = { workspace = true, features = ["testing"] }

@@ -217,6 +217,10 @@ pub struct Services {
     /// …and runs one tool in its in-memory `/work` folder, putting the new files and printed
     /// lines in the slot. The desktop app runs tools through the `geolibre` program instead.
     pub geolibre_run: Option<Box<dyn Fn(rustgis_engine::cmd::gp::ExternalRun, Slot<rustgis_engine::cmd::gp::ExternalOutput>)>>,
+    /// Runs one `gp.runR` job (webR in the browser; scaffold) and puts the output JSON
+    /// (or the error) in the slot.
+    #[cfg(feature = "r")]
+    pub r_run: Option<Box<dyn Fn(rustgis_engine::cmd::gp::RRun, Slot<Result<serde_json::Value, String>>)>>,
     /// Downloads a URL into the slot (the browser's fetch; the desktop downloads on a thread).
     pub fetch: Option<Box<dyn Fn(&str, Slot<Result<Vec<u8>, String>>)>>,
     /// Makes an HTTP request (the AI assistant's calls to its model) and puts the response, of any
