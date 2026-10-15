@@ -28,6 +28,11 @@ Plugin commands (`plugin:<plugin>/<command>`) dispatch through `Session::run` to
 step. While they run, they reach the session only through permission-checked requests (see
 [Plugins](plugins.md)).
 
+Work that runs outside the command call uses one asynchronous path, shared by GeoLibre and R. A
+run starts, a runner completes it, and `gp.finish` applies the result to the project once, as one
+undo step. Runs share one queue, and R runs are queued one at a time. `gp.runR` validates its
+parameters but refuses on every host until the R runner lands, so R scripts cannot run yet.
+
 ## Never crash
 
 Production code avoids `unwrap`, `expect` and panics, and treats file contents and command
