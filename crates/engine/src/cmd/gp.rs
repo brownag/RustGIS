@@ -83,7 +83,12 @@ pub fn r_start(s: &Session, params: &Value) -> Result<RRun, String> {
     for name in names {
         let name = name.as_str().ok_or("inputs must be a list of layer names")?;
         let layer = s.map().layer_by_name(name).ok_or_else(|| format!("no layer named '{name}'"))?;
-        layers.push(rustgis_r::RLayerInput { name: layer.name.clone(), format: "placeholder".into(), data: Vec::new(), ..Default::default() });
+        layers.push(rustgis_r::RLayerInput {
+            name: layer.name.clone(),
+            format: "placeholder".into(),
+            data: Vec::new(),
+            ..Default::default()
+        });
     }
     let args = match params.get("args") {
         None | Some(Value::Null) => json!({}),
