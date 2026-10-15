@@ -1471,7 +1471,9 @@ Loads map tiles from the web	Memuat ubin peta dari web
 Local	Lokal
 Locate	Temukan Lokasi
 Locate GeoLibre Runner	Temukan runner GeoLibre
+Locate Rscript…	Temukan Rscript…
 Locate the GeoLibre runner	Temukan runner GeoLibre
+Locate the Rscript program	Temukan program Rscript
 Locate…	Temukan…
 Location	Lokasi
 Locator	Lokator
@@ -2176,6 +2178,7 @@ roundabout turn	berbelok di bundaran
 Routes (name, surface, length)	Rute (nama, permukaan, panjang)
 Routes by Valhalla (FOSSGIS) on OpenStreetMap data. Travel times don't include live traffic.	Rute oleh Valhalla (FOSSGIS) dengan data OpenStreetMap. Waktu tempuh tidak memperhitungkan lalu lintas langsung.
 Rows	Baris
+Rscript was not found	Rscript tidak ditemukan
 Rule name	Nama aturan
 Rulers	Penggaris
 Run	Jalankan
@@ -2189,6 +2192,7 @@ Run failed: {error}	Gagal dijalankan: {error}
 Run finished.	Selesai dijalankan.
 Run finished. Layers kept: {names}.	Selesai dijalankan. Layer yang disimpan: {names}.
 Run Model	Jalankan Model
+Run R Script	Jalankan Skrip R
 Run Script	Jalankan Skrip
 Run SQL Query	Jalankan Kueri SQL
 Run Task	Jalankan Tugas
@@ -2209,6 +2213,7 @@ RustGIS layers, maps and projects	Layer, peta, dan proyek RustGIS
 RustGIS layout	Tata letak RustGIS
 RustGIS maps and projects	Peta dan proyek RustGIS
 RustGIS model	Model RustGIS
+RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS memerlukan paket R 'jsonlite'; pasang dengan install.packages("jsonlite")
 RustGIS or Jupyter notebook	Notebook RustGIS atau Jupyter
 RustGIS plugin	Plugin RustGIS
 RustGIS presentation	Presentasi RustGIS
@@ -2402,6 +2407,7 @@ Set Domain	Atur Domain
 Set Filter	Atur Filter
 Set Geometry	Atur Geometri
 Set Map Tool	Atur Alat Peta
+Set Rscript	Atur Rscript
 Set Scale	Atur Skala
 Set Subtypes	Atur Subtipe
 Set the pixels inside a polygon	Atur piksel di dalam poligon
@@ -2776,6 +2782,8 @@ This plugin runs as a program on your computer, outside RustGIS's sandbox. It ca
 This request has no one-time allow option.	Permintaan ini tidak memiliki opsi izinkan sekali.
 This request uses an unsupported capability. Check the parameter and change the request.	Permintaan ini menggunakan kemampuan yang tidak didukung. Periksa parameter dan ubah permintaan.
 This result is kept	Hasil ini disimpan
+this script needs geometry; install the R package 'sf': install.packages("sf")	skrip ini memerlukan geometri; pasang paket R 'sf': install.packages("sf")
+this script needs rasters; install the R package 'terra': install.packages("terra")	skrip ini memerlukan raster; pasang paket R 'terra': install.packages("terra")
 This step	Langkah ini
 This step names no tool to show.	Langkah ini tidak menyebut alat untuk ditunjukkan.
 Thumbnail	Thumbnail
@@ -3104,9 +3112,4 @@ Zoom To World	Zoom ke Dunia
 ±, dequantised	±, didekuantisasi
 — fps	— fps
 ⌘K	⌘K
-Locate Rscript	Temukan Rscript
-Rscript was not found	Rscript tidak ditemukan
-RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS memerlukan paket R 'jsonlite'; pasang dengan install.packages("jsonlite")
-this script needs geometry; install the R package 'sf': install.packages("sf")	skrip ini memerlukan geometri; pasang paket R 'sf': install.packages("sf")
-this script needs rasters; install the R package 'terra': install.packages("terra")	skrip ini memerlukan raster; pasang paket R 'terra': install.packages("terra")
 ▶ Simulate	▶ Simulasikan

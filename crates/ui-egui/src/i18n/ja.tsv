@@ -1471,7 +1471,9 @@ Loads map tiles from the web	Web からマップ タイルを読み込みます
 Local	ローカル
 Locate	位置
 Locate GeoLibre Runner	GeoLibre ランナーの場所を指定
+Locate Rscript…	Rscript の場所を指定…
 Locate the GeoLibre runner	GeoLibre ランナーの場所を指定
+Locate the Rscript program	Rscript プログラムの場所を指定
 Locate…	場所を指定…
 Location	場所
 Locator	ロケーター
@@ -2176,6 +2178,7 @@ roundabout turn	環状交差点で曲がる
 Routes (name, surface, length)	ルート (名前、路面、長さ)
 Routes by Valhalla (FOSSGIS) on OpenStreetMap data. Travel times don't include live traffic.	ルートは OpenStreetMap データを使用した Valhalla (FOSSGIS) によるものです。所要時間にリアルタイムの交通状況は含まれません。
 Rows	行
+Rscript was not found	Rscript が見つかりません
 Rule name	ルール名
 Rulers	ルーラー
 Run	実行
@@ -2189,6 +2192,7 @@ Run failed: {error}	実行に失敗しました: {error}
 Run finished.	実行が完了しました。
 Run finished. Layers kept: {names}.	実行が完了しました。残したレイヤー: {names}。
 Run Model	モデルの実行
+Run R Script	R スクリプトの実行
 Run Script	スクリプトの実行
 Run SQL Query	SQL クエリの実行
 Run Task	タスクの実行
@@ -2209,6 +2213,7 @@ RustGIS layers, maps and projects	RustGIS のレイヤー、マップ、プロ�
 RustGIS layout	RustGIS レイアウト
 RustGIS maps and projects	RustGIS のマップとプロジェクト
 RustGIS model	RustGIS モデル
+RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS には R パッケージ 'jsonlite' が必要です。install.packages("jsonlite") でインストールしてください
 RustGIS or Jupyter notebook	RustGIS または Jupyter のノートブック
 RustGIS plugin	RustGIS プラグイン
 RustGIS presentation	RustGIS プレゼンテーション
@@ -2402,6 +2407,7 @@ Set Domain	ドメインの設定
 Set Filter	フィルターの設定
 Set Geometry	ジオメトリの設定
 Set Map Tool	マップ ツールの設定
+Set Rscript	Rscript の設定
 Set Scale	縮尺の設定
 Set Subtypes	サブタイプの設定
 Set the pixels inside a polygon	ポリゴン内のピクセルを設定
@@ -2776,6 +2782,8 @@ This plugin runs as a program on your computer, outside RustGIS's sandbox. It ca
 This request has no one-time allow option.	この要求には「今回のみ許可」のオプションがありません。
 This request uses an unsupported capability. Check the parameter and change the request.	このリクエストは未対応の機能を使用しています。パラメーターを確認してリクエストを変更してください。
 This result is kept	この結果は残されます
+this script needs geometry; install the R package 'sf': install.packages("sf")	このスクリプトにはジオメトリが必要です。R パッケージ 'sf' をインストールしてください: install.packages("sf")
+this script needs rasters; install the R package 'terra': install.packages("terra")	このスクリプトにはラスターが必要です。R パッケージ 'terra' をインストールしてください: install.packages("terra")
 This step	このステップ
 This step names no tool to show.	このステップには表示するツールが指定されていません。
 Thumbnail	サムネイル
@@ -3104,9 +3112,4 @@ Zoom To World	世界にズーム
 ±, dequantised	±、逆量子化
 — fps	— fps
 ⌘K	⌘K
-Locate Rscript	Rscript の場所を指定
-Rscript was not found	Rscript が見つかりません
-RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS には R パッケージ 'jsonlite' が必要です。install.packages("jsonlite") でインストールしてください
-this script needs geometry; install the R package 'sf': install.packages("sf")	このスクリプトにはジオメトリが必要です。R パッケージ 'sf' をインストールしてください: install.packages("sf")
-this script needs rasters; install the R package 'terra': install.packages("terra")	このスクリプトにはラスターが必要です。R パッケージ 'terra' をインストールしてください: install.packages("terra")
 ▶ Simulate	▶ シミュレート

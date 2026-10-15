@@ -1471,7 +1471,9 @@ Loads map tiles from the web	Carica tile di mappa dal web
 Local	Locale
 Locate	Localizza
 Locate GeoLibre Runner	Individua l'esecutore GeoLibre
+Locate Rscript…	Individua Rscript…
 Locate the GeoLibre runner	Individua l'esecutore GeoLibre
+Locate the Rscript program	Individua il programma Rscript
 Locate…	Individua…
 Location	Posizione
 Locator	Localizzatore
@@ -2176,6 +2178,7 @@ roundabout turn	svolta alla rotonda
 Routes (name, surface, length)	Percorsi (nome, superficie, lunghezza)
 Routes by Valhalla (FOSSGIS) on OpenStreetMap data. Travel times don't include live traffic.	Percorsi di Valhalla (FOSSGIS) su dati OpenStreetMap. I tempi di viaggio non includono il traffico in tempo reale.
 Rows	Righe
+Rscript was not found	Rscript non è stato trovato
 Rule name	Nome della regola
 Rulers	Righelli
 Run	Esegui
@@ -2189,6 +2192,7 @@ Run failed: {error}	Esecuzione non riuscita: {error}
 Run finished.	Esecuzione completata.
 Run finished. Layers kept: {names}.	Esecuzione completata. Layer conservati: {names}.
 Run Model	Esegui modello
+Run R Script	Esegui script R
 Run Script	Esegui script
 Run SQL Query	Esegui query SQL
 Run Task	Esegui attività
@@ -2209,6 +2213,7 @@ RustGIS layers, maps and projects	Layer, mappe e progetti RustGIS
 RustGIS layout	Layout RustGIS
 RustGIS maps and projects	Mappe e progetti RustGIS
 RustGIS model	Modello RustGIS
+RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS richiede il pacchetto R 'jsonlite'; installalo con install.packages("jsonlite")
 RustGIS or Jupyter notebook	Notebook RustGIS o Jupyter
 RustGIS plugin	Plugin di RustGIS
 RustGIS presentation	Presentazione RustGIS
@@ -2402,6 +2407,7 @@ Set Domain	Imposta dominio
 Set Filter	Imposta filtro
 Set Geometry	Imposta geometria
 Set Map Tool	Imposta strumento mappa
+Set Rscript	Imposta Rscript
 Set Scale	Imposta scala
 Set Subtypes	Imposta sottotipi
 Set the pixels inside a polygon	Imposta i pixel all'interno di un poligono
@@ -2776,6 +2782,8 @@ This plugin runs as a program on your computer, outside RustGIS's sandbox. It ca
 This request has no one-time allow option.	Questa richiesta non prevede un'opzione per consentire una sola volta.
 This request uses an unsupported capability. Check the parameter and change the request.	Questa richiesta utilizza una funzionalità non supportata. Controlla il parametro e modifica la richiesta.
 This result is kept	Questo risultato viene conservato
+this script needs geometry; install the R package 'sf': install.packages("sf")	questo script richiede geometrie; installa il pacchetto R 'sf': install.packages("sf")
+this script needs rasters; install the R package 'terra': install.packages("terra")	questo script richiede raster; installa il pacchetto R 'terra': install.packages("terra")
 This step	Questo passo
 This step names no tool to show.	Questo passaggio non indica alcuno strumento da mostrare.
 Thumbnail	Miniatura
@@ -3104,9 +3112,4 @@ Zoom To World	Zoom al mondo
 ±, dequantised	±, dequantizzato
 — fps	— fps
 ⌘K	⌘K
-Locate Rscript	Individua Rscript
-Rscript was not found	Rscript non è stato trovato
-RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS richiede il pacchetto R 'jsonlite'; installalo con install.packages("jsonlite")
-this script needs geometry; install the R package 'sf': install.packages("sf")	questo script richiede geometrie; installa il pacchetto R 'sf': install.packages("sf")
-this script needs rasters; install the R package 'terra': install.packages("terra")	questo script richiede raster; installa il pacchetto R 'terra': install.packages("terra")
 ▶ Simulate	▶ Simula

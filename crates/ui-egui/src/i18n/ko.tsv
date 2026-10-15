@@ -1471,7 +1471,9 @@ Loads map tiles from the web	웹에서 지도 타일을 불러옵니다
 Local	로컬
 Locate	위치 찾기
 Locate GeoLibre Runner	GeoLibre 실행기 찾기
+Locate Rscript…	Rscript 찾기…
 Locate the GeoLibre runner	GeoLibre 실행기 찾기
+Locate the Rscript program	Rscript 프로그램 찾기
 Locate…	찾기…
 Location	위치
 Locator	로케이터
@@ -2176,6 +2178,7 @@ roundabout turn	회전교차로에서 회전
 Routes (name, surface, length)	경로(이름, 노면, 길이)
 Routes by Valhalla (FOSSGIS) on OpenStreetMap data. Travel times don't include live traffic.	경로는 OpenStreetMap 데이터 기반의 Valhalla(FOSSGIS)가 제공합니다. 이동 시간에는 실시간 교통 상황이 반영되지 않습니다.
 Rows	행
+Rscript was not found	Rscript를 찾을 수 없습니다
 Rule name	규칙 이름
 Rulers	눈금자
 Run	실행
@@ -2189,6 +2192,7 @@ Run failed: {error}	실행 실패: {error}
 Run finished.	실행이 완료되었습니다.
 Run finished. Layers kept: {names}.	실행이 완료되었습니다. 유지된 레이어: {names}.
 Run Model	모델 실행
+Run R Script	R 스크립트 실행
 Run Script	스크립트 실행
 Run SQL Query	SQL 쿼리 실행
 Run Task	태스크 실행
@@ -2209,6 +2213,7 @@ RustGIS layers, maps and projects	RustGIS 레이어, 지도 및 프로젝트
 RustGIS layout	RustGIS 레이아웃
 RustGIS maps and projects	RustGIS 지도 및 프로젝트
 RustGIS model	RustGIS 모델
+RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS에는 R 패키지 'jsonlite'가 필요합니다. install.packages("jsonlite")로 설치하세요
 RustGIS or Jupyter notebook	RustGIS 또는 Jupyter 노트북
 RustGIS plugin	RustGIS 플러그인
 RustGIS presentation	RustGIS 프레젠테이션
@@ -2402,6 +2407,7 @@ Set Domain	도메인 설정
 Set Filter	필터 설정
 Set Geometry	지오메트리 설정
 Set Map Tool	지도 도구 설정
+Set Rscript	Rscript 설정
 Set Scale	축척 설정
 Set Subtypes	하위 유형 설정
 Set the pixels inside a polygon	폴리곤 내부 픽셀 설정
@@ -2776,6 +2782,8 @@ This plugin runs as a program on your computer, outside RustGIS's sandbox. It ca
 This request has no one-time allow option.	이 요청에는 1회 허용 옵션이 없습니다.
 This request uses an unsupported capability. Check the parameter and change the request.	이 요청은 지원되지 않는 기능을 사용합니다. 매개변수를 확인하고 요청을 변경하세요.
 This result is kept	이 결과는 유지됩니다
+this script needs geometry; install the R package 'sf': install.packages("sf")	이 스크립트에는 지오메트리가 필요합니다. R 패키지 'sf'를 설치하세요: install.packages("sf")
+this script needs rasters; install the R package 'terra': install.packages("terra")	이 스크립트에는 래스터가 필요합니다. R 패키지 'terra'를 설치하세요: install.packages("terra")
 This step	이 단계
 This step names no tool to show.	이 단계에는 표시할 도구가 지정되어 있지 않습니다.
 Thumbnail	썸네일
@@ -3104,9 +3112,4 @@ Zoom To World	세계로 확대/축소
 ±, dequantised	±, 역양자화됨
 — fps	— fps
 ⌘K	⌘K
-Locate Rscript	Rscript 찾기
-Rscript was not found	Rscript를 찾을 수 없습니다
-RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS에는 R 패키지 'jsonlite'가 필요합니다. install.packages("jsonlite")로 설치하세요
-this script needs geometry; install the R package 'sf': install.packages("sf")	이 스크립트에는 지오메트리가 필요합니다. R 패키지 'sf'를 설치하세요: install.packages("sf")
-this script needs rasters; install the R package 'terra': install.packages("terra")	이 스크립트에는 래스터가 필요합니다. R 패키지 'terra'를 설치하세요: install.packages("terra")
 ▶ Simulate	▶ 시뮬레이션

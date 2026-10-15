@@ -1471,7 +1471,9 @@ Loads map tiles from the web	Tải ô bản đồ từ web
 Local	Cục bộ
 Locate	Định vị
 Locate GeoLibre Runner	Tìm trình chạy GeoLibre
+Locate Rscript…	Tìm Rscript…
 Locate the GeoLibre runner	Tìm trình chạy GeoLibre
+Locate the Rscript program	Tìm chương trình Rscript
 Locate…	Tìm…
 Location	Vị trí
 Locator	Bộ định vị
@@ -2176,6 +2178,7 @@ roundabout turn	rẽ tại vòng xuyến
 Routes (name, surface, length)	Tuyến đường (tên, mặt đường, chiều dài)
 Routes by Valhalla (FOSSGIS) on OpenStreetMap data. Travel times don't include live traffic.	Tuyến đường do Valhalla (FOSSGIS) tính trên dữ liệu OpenStreetMap. Thời gian di chuyển không tính giao thông thời gian thực.
 Rows	Hàng
+Rscript was not found	Không tìm thấy Rscript
 Rule name	Tên quy tắc
 Rulers	Thước
 Run	Chạy
@@ -2189,6 +2192,7 @@ Run failed: {error}	Chạy thất bại: {error}
 Run finished.	Đã chạy xong.
 Run finished. Layers kept: {names}.	Đã chạy xong. Các lớp được giữ: {names}.
 Run Model	Chạy mô hình
+Run R Script	Chạy script R
 Run Script	Chạy script
 Run SQL Query	Chạy truy vấn SQL
 Run Task	Chạy nhiệm vụ
@@ -2209,6 +2213,7 @@ RustGIS layers, maps and projects	Lớp, bản đồ và dự án RustGIS
 RustGIS layout	Bố cục RustGIS
 RustGIS maps and projects	Bản đồ và dự án RustGIS
 RustGIS model	Mô hình RustGIS
+RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS cần gói R 'jsonlite'; cài đặt bằng install.packages("jsonlite")
 RustGIS or Jupyter notebook	Sổ tay RustGIS hoặc Jupyter
 RustGIS plugin	Plugin RustGIS
 RustGIS presentation	Bản trình bày RustGIS
@@ -2402,6 +2407,7 @@ Set Domain	Đặt miền giá trị
 Set Filter	Đặt bộ lọc
 Set Geometry	Đặt hình học
 Set Map Tool	Đặt công cụ bản đồ
+Set Rscript	Đặt Rscript
 Set Scale	Đặt tỷ lệ
 Set Subtypes	Đặt kiểu con
 Set the pixels inside a polygon	Đặt các điểm ảnh bên trong một vùng
@@ -2776,6 +2782,8 @@ This plugin runs as a program on your computer, outside RustGIS's sandbox. It ca
 This request has no one-time allow option.	Yêu cầu này không có tùy chọn cho phép một lần.
 This request uses an unsupported capability. Check the parameter and change the request.	Yêu cầu này dùng tính năng không được hỗ trợ. Kiểm tra tham số và sửa yêu cầu.
 This result is kept	Kết quả này được giữ lại
+this script needs geometry; install the R package 'sf': install.packages("sf")	tập lệnh này cần dữ liệu hình học; cài gói R 'sf': install.packages("sf")
+this script needs rasters; install the R package 'terra': install.packages("terra")	tập lệnh này cần raster; cài gói R 'terra': install.packages("terra")
 This step	Bước này
 This step names no tool to show.	Bước này không nêu công cụ nào để chỉ ra.
 Thumbnail	Ảnh thu nhỏ
@@ -3104,9 +3112,4 @@ Zoom To World	Thu phóng tới thế giới
 ±, dequantised	±, đã giải lượng tử hóa
 — fps	— fps
 ⌘K	⌘K
-Locate Rscript	Tìm Rscript
-Rscript was not found	Không tìm thấy Rscript
-RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS cần gói R 'jsonlite'; cài đặt bằng install.packages("jsonlite")
-this script needs geometry; install the R package 'sf': install.packages("sf")	tập lệnh này cần dữ liệu hình học; cài gói R 'sf': install.packages("sf")
-this script needs rasters; install the R package 'terra': install.packages("terra")	tập lệnh này cần raster; cài gói R 'terra': install.packages("terra")
 ▶ Simulate	▶ Mô phỏng

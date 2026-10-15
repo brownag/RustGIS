@@ -1471,7 +1471,9 @@ Loads map tiles from the web	从网络加载地图瓦片
 Local	本地
 Locate	定位
 Locate GeoLibre Runner	定位 GeoLibre 运行器
+Locate Rscript…	定位 Rscript…
 Locate the GeoLibre runner	定位 GeoLibre 运行器
+Locate the Rscript program	定位 Rscript 程序
 Locate…	定位…
 Location	位置
 Locator	定位器
@@ -2176,6 +2178,7 @@ roundabout turn	环岛转弯
 Routes (name, surface, length)	路线（名称、路面、长度）
 Routes by Valhalla (FOSSGIS) on OpenStreetMap data. Travel times don't include live traffic.	路线由 Valhalla（FOSSGIS）基于 OpenStreetMap 数据提供。行程时间不包含实时路况。
 Rows	行
+Rscript was not found	未找到 Rscript
 Rule name	规则名称
 Rulers	标尺
 Run	运行
@@ -2189,6 +2192,7 @@ Run failed: {error}	运行失败：{error}
 Run finished.	运行完成。
 Run finished. Layers kept: {names}.	运行完成。保留的图层：{names}。
 Run Model	运行模型
+Run R Script	运行 R 脚本
 Run Script	运行脚本
 Run SQL Query	运行 SQL 查询
 Run Task	运行任务
@@ -2209,6 +2213,7 @@ RustGIS layers, maps and projects	RustGIS 图层、地图和工程
 RustGIS layout	RustGIS 布局
 RustGIS maps and projects	RustGIS 地图和工程
 RustGIS model	RustGIS 模型
+RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS 需要 R 软件包 'jsonlite';请用 install.packages("jsonlite") 安装
 RustGIS or Jupyter notebook	RustGIS 或 Jupyter 笔记本
 RustGIS plugin	RustGIS 插件
 RustGIS presentation	RustGIS 演示文稿
@@ -2402,6 +2407,7 @@ Set Domain	设置属性域
 Set Filter	设置筛选器
 Set Geometry	设置几何
 Set Map Tool	设置地图工具
+Set Rscript	设置 Rscript
 Set Scale	设置比例尺
 Set Subtypes	设置子类型
 Set the pixels inside a polygon	设置多边形内的像素
@@ -2776,6 +2782,8 @@ This plugin runs as a program on your computer, outside RustGIS's sandbox. It ca
 This request has no one-time allow option.	此请求没有“仅允许一次”选项。
 This request uses an unsupported capability. Check the parameter and change the request.	此请求使用了不受支持的功能。请检查参数并修改请求。
 This result is kept	此结果将被保留
+this script needs geometry; install the R package 'sf': install.packages("sf")	此脚本需要几何数据;请安装 R 软件包 'sf': install.packages("sf")
+this script needs rasters; install the R package 'terra': install.packages("terra")	此脚本需要栅格数据;请安装 R 软件包 'terra': install.packages("terra")
 This step	此步骤
 This step names no tool to show.	此步骤未指定要显示的工具。
 Thumbnail	缩略图
@@ -3104,9 +3112,4 @@ Zoom To World	缩放至世界
 ±, dequantised	±，已反量化
 — fps	— fps
 ⌘K	⌘K
-Locate Rscript	定位 Rscript
-Rscript was not found	未找到 Rscript
-RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS 需要 R 软件包 'jsonlite';请用 install.packages("jsonlite") 安装
-this script needs geometry; install the R package 'sf': install.packages("sf")	此脚本需要几何数据;请安装 R 软件包 'sf': install.packages("sf")
-this script needs rasters; install the R package 'terra': install.packages("terra")	此脚本需要栅格数据;请安装 R 软件包 'terra': install.packages("terra")
 ▶ Simulate	▶ 模拟

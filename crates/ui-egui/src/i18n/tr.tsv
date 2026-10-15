@@ -1471,7 +1471,9 @@ Loads map tiles from the web	Web'den harita karoları yükler
 Local	Yerel
 Locate	Konum Bul
 Locate GeoLibre Runner	GeoLibre çalıştırıcısını bul
+Locate Rscript…	Rscript'i bul…
 Locate the GeoLibre runner	GeoLibre çalıştırıcısını bul
+Locate the Rscript program	Rscript programını bul
 Locate…	Bul…
 Location	Konum
 Locator	Konum Bulucu
@@ -2176,6 +2178,7 @@ roundabout turn	göbekte dönün
 Routes (name, surface, length)	Rotalar (ad, yüzey, uzunluk)
 Routes by Valhalla (FOSSGIS) on OpenStreetMap data. Travel times don't include live traffic.	Rotalar Valhalla (FOSSGIS) tarafından OpenStreetMap verileriyle oluşturulur. Yolculuk süreleri canlı trafiği içermez.
 Rows	Satırlar
+Rscript was not found	Rscript bulunamadı
 Rule name	Kural adı
 Rulers	Cetveller
 Run	Çalıştır
@@ -2189,6 +2192,7 @@ Run failed: {error}	Çalıştırma başarısız: {error}
 Run finished.	Çalıştırma tamamlandı.
 Run finished. Layers kept: {names}.	Çalıştırma tamamlandı. Saklanan katmanlar: {names}.
 Run Model	Modeli Çalıştır
+Run R Script	R betiğini çalıştır
 Run Script	Betiği Çalıştır
 Run SQL Query	SQL Sorgusu Çalıştır
 Run Task	Görevi Çalıştır
@@ -2209,6 +2213,7 @@ RustGIS layers, maps and projects	RustGIS katmanları, haritaları ve projeleri
 RustGIS layout	RustGIS sayfa düzeni
 RustGIS maps and projects	RustGIS haritaları ve projeleri
 RustGIS model	RustGIS modeli
+RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS, 'jsonlite' R paketini gerektirir; install.packages("jsonlite") ile kurun
 RustGIS or Jupyter notebook	RustGIS veya Jupyter not defteri
 RustGIS plugin	RustGIS eklentisi
 RustGIS presentation	RustGIS sunumu
@@ -2402,6 +2407,7 @@ Set Domain	Değer Kümesi Ayarla
 Set Filter	Filtre Ayarla
 Set Geometry	Geometriyi Ayarla
 Set Map Tool	Harita Aracını Ayarla
+Set Rscript	Rscript'i ayarla
 Set Scale	Ölçeği Ayarla
 Set Subtypes	Alt Türleri Ayarla
 Set the pixels inside a polygon	Bir poligonun içindeki pikselleri ayarla
@@ -2776,6 +2782,8 @@ This plugin runs as a program on your computer, outside RustGIS's sandbox. It ca
 This request has no one-time allow option.	Bu istek için tek seferlik izin seçeneği yok.
 This request uses an unsupported capability. Check the parameter and change the request.	Bu istek desteklenmeyen bir özellik kullanıyor. Parametreyi kontrol edip isteği değiştirin.
 This result is kept	Bu sonuç saklanır
+this script needs geometry; install the R package 'sf': install.packages("sf")	bu betik geometri gerektirir; 'sf' R paketini kurun: install.packages("sf")
+this script needs rasters; install the R package 'terra': install.packages("terra")	bu betik raster gerektirir; 'terra' R paketini kurun: install.packages("terra")
 This step	Bu adım
 This step names no tool to show.	Bu adım gösterilecek bir araç belirtmiyor.
 Thumbnail	Küçük Resim
@@ -3104,9 +3112,4 @@ Zoom To World	Dünyaya Yakınlaştır
 ±, dequantised	±, nicemlemesi geri alınmış
 — fps	— fps
 ⌘K	⌘K
-Locate Rscript	Rscript'i bul
-Rscript was not found	Rscript bulunamadı
-RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS, 'jsonlite' R paketini gerektirir; install.packages("jsonlite") ile kurun
-this script needs geometry; install the R package 'sf': install.packages("sf")	bu betik geometri gerektirir; 'sf' R paketini kurun: install.packages("sf")
-this script needs rasters; install the R package 'terra': install.packages("terra")	bu betik raster gerektirir; 'terra' R paketini kurun: install.packages("terra")
 ▶ Simulate	▶ Canlandır

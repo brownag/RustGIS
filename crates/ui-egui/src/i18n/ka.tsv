@@ -1471,7 +1471,9 @@ Loads map tiles from the web	რუკის ფილების ჩატვ�
 Local	ლოკალური
 Locate	მოძებნა
 Locate GeoLibre Runner	GeoLibre-ის გამშვების მოძებნა
+Locate Rscript…	Rscript-ის მოძებნა…
 Locate the GeoLibre runner	GeoLibre-ის გამშვების მოძებნა
+Locate the Rscript program	Rscript-ის პროგრამის მოძებნა
 Locate…	მოძებნა…
 Location	მდებარეობა
 Locator	ლოკატორი
@@ -2176,6 +2178,7 @@ roundabout turn	მოუხვიეთ წრიულ მოძრაობ�
 Routes (name, surface, length)	მარშრუტები (სახელი, საფარი, სიგრძე)
 Routes by Valhalla (FOSSGIS) on OpenStreetMap data. Travel times don't include live traffic.	მარშრუტები Valhalla-სგან (FOSSGIS) OpenStreetMap-ის მონაცემებზე. მგზავრობის დრო არ ითვალისწინებს მიმდინარე საცობებს.
 Rows	სტრიქონები
+Rscript was not found	Rscript ვერ მოიძებნა
 Rule name	წესის სახელი
 Rulers	სახაზავები
 Run	გაშვება
@@ -2189,6 +2192,7 @@ Run failed: {error}	გაშვება ვერ მოხერხდა: {e
 Run finished.	გაშვება დასრულდა.
 Run finished. Layers kept: {names}.	გაშვება დასრულდა. შენარჩუნებული ფენები: {names}.
 Run Model	მოდელის გაშვება
+Run R Script	R სკრიპტის გაშვება
 Run Script	სკრიპტის გაშვება
 Run SQL Query	SQL მოთხოვნის გაშვება
 Run Task	ამოცანის გაშვება
@@ -2209,6 +2213,7 @@ RustGIS layers, maps and projects	RustGIS-ის ფენები, რუკ�
 RustGIS layout	RustGIS-ის განლაგება
 RustGIS maps and projects	RustGIS-ის რუკები და პროექტები
 RustGIS model	RustGIS-ის მოდელი
+RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS-ს სჭირდება R პაკეტი 'jsonlite'; დააინსტალირეთ install.packages("jsonlite")-ით
 RustGIS or Jupyter notebook	RustGIS-ის ან Jupyter-ის რვეული
 RustGIS plugin	RustGIS-ის დანამატი
 RustGIS presentation	RustGIS-ის პრეზენტაცია
@@ -2402,6 +2407,7 @@ Set Domain	დომენის დაყენება
 Set Filter	ფილტრის დაყენება
 Set Geometry	გეომეტრიის დაყენება
 Set Map Tool	რუკის ხელსაწყოს დაყენება
+Set Rscript	Rscript-ის დაყენება
 Set Scale	მასშტაბის დაყენება
 Set Subtypes	ქვეტიპების დაყენება
 Set the pixels inside a polygon	პოლიგონში მოხვედრილი პიქსელების მნიშვნელობის დაყენება
@@ -2776,6 +2782,8 @@ This plugin runs as a program on your computer, outside RustGIS's sandbox. It ca
 This request has no one-time allow option.	ამ მოთხოვნას ერთჯერადი დაშვების ვარიანტი არ აქვს.
 This request uses an unsupported capability. Check the parameter and change the request.	ეს მოთხოვნა მხარდაუჭერელ შესაძლებლობას იყენებს. შეამოწმეთ პარამეტრი და შეცვალეთ მოთხოვნა.
 This result is kept	ეს შედეგი შენარჩუნებულია
+this script needs geometry; install the R package 'sf': install.packages("sf")	ამ სკრიპტს გეომეტრია სჭირდება; დააინსტალირეთ R პაკეტი 'sf': install.packages("sf")
+this script needs rasters; install the R package 'terra': install.packages("terra")	ამ სკრიპტს რასტრები სჭირდება; დააინსტალირეთ R პაკეტი 'terra': install.packages("terra")
 This step	ეს ნაბიჯი
 This step names no tool to show.	ეს საფეხური საჩვენებელ ხელსაწყოს არ ასახელებს.
 Thumbnail	მინიატურა
@@ -3104,9 +3112,4 @@ Zoom To World	გადიდება მსოფლიოზე
 ±, dequantised	±, დეკვანტებული
 — fps	— კადრი/წმ
 ⌘K	⌘K
-Locate Rscript	Rscript-ის მოძებნა
-Rscript was not found	Rscript ვერ მოიძებნა
-RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS-ს სჭირდება R პაკეტი 'jsonlite'; დააინსტალირეთ install.packages("jsonlite")-ით
-this script needs geometry; install the R package 'sf': install.packages("sf")	ამ სკრიპტს გეომეტრია სჭირდება; დააინსტალირეთ R პაკეტი 'sf': install.packages("sf")
-this script needs rasters; install the R package 'terra': install.packages("terra")	ამ სკრიპტს რასტრები სჭირდება; დააინსტალირეთ R პაკეტი 'terra': install.packages("terra")
 ▶ Simulate	▶ სიმულაცია

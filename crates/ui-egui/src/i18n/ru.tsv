@@ -1471,7 +1471,9 @@ Loads map tiles from the web	Загружает тайлы карты из ин�
 Local	Локальная
 Locate	Найти место
 Locate GeoLibre Runner	Указать модуль запуска GeoLibre
+Locate Rscript…	Указать Rscript…
 Locate the GeoLibre runner	Указать модуль запуска GeoLibre
+Locate the Rscript program	Указать программу Rscript
 Locate…	Указать…
 Location	Расположение
 Locator	Локатор
@@ -2176,6 +2178,7 @@ roundabout turn	поворот на круговом движении
 Routes (name, surface, length)	Маршруты (название, покрытие, длина)
 Routes by Valhalla (FOSSGIS) on OpenStreetMap data. Travel times don't include live traffic.	Маршруты от Valhalla (FOSSGIS) на данных OpenStreetMap. Время в пути не учитывает текущие пробки.
 Rows	Строки
+Rscript was not found	Rscript не найден
 Rule name	Имя правила
 Rulers	Линейки
 Run	Запустить
@@ -2189,6 +2192,7 @@ Run failed: {error}	Запуск не удался: {error}
 Run finished.	Запуск завершён.
 Run finished. Layers kept: {names}.	Запуск завершён. Сохранённые слои: {names}.
 Run Model	Запустить модель
+Run R Script	Запустить скрипт R
 Run Script	Запустить скрипт
 Run SQL Query	Выполнить SQL-запрос
 Run Task	Запустить задачу
@@ -2209,6 +2213,7 @@ RustGIS layers, maps and projects	Слои, карты и проекты RustGIS
 RustGIS layout	Макет RustGIS
 RustGIS maps and projects	Карты и проекты RustGIS
 RustGIS model	Модель RustGIS
+RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS требуется пакет R 'jsonlite'; установите его командой install.packages("jsonlite")
 RustGIS or Jupyter notebook	Блокнот RustGIS или Jupyter
 RustGIS plugin	Модуль RustGIS
 RustGIS presentation	Презентация RustGIS
@@ -2402,6 +2407,7 @@ Set Domain	Задать домен
 Set Filter	Задать фильтр
 Set Geometry	Задать геометрию
 Set Map Tool	Выбрать инструмент карты
+Set Rscript	Задать Rscript
 Set Scale	Задать масштаб
 Set Subtypes	Задать подтипы
 Set the pixels inside a polygon	Задать пиксели внутри полигона
@@ -2776,6 +2782,8 @@ This plugin runs as a program on your computer, outside RustGIS's sandbox. It ca
 This request has no one-time allow option.	Для этого запроса нет варианта разового разрешения.
 This request uses an unsupported capability. Check the parameter and change the request.	Запрос использует неподдерживаемую функцию. Проверьте параметр и измените запрос.
 This result is kept	Этот результат сохраняется
+this script needs geometry; install the R package 'sf': install.packages("sf")	этому скрипту нужна геометрия; установите пакет R 'sf': install.packages("sf")
+this script needs rasters; install the R package 'terra': install.packages("terra")	этому скрипту нужны растры; установите пакет R 'terra': install.packages("terra")
 This step	Этот шаг
 This step names no tool to show.	В этом шаге не указан инструмент для показа.
 Thumbnail	Эскиз
@@ -3104,9 +3112,4 @@ Zoom To World	Приблизить к миру
 ±, dequantised	±, деквантованные
 — fps	— к/с
 ⌘K	⌘K
-Locate Rscript	Указать Rscript
-Rscript was not found	Rscript не найден
-RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS требуется пакет R 'jsonlite'; установите его командой install.packages("jsonlite")
-this script needs geometry; install the R package 'sf': install.packages("sf")	этому скрипту нужна геометрия; установите пакет R 'sf': install.packages("sf")
-this script needs rasters; install the R package 'terra': install.packages("terra")	этому скрипту нужны растры; установите пакет R 'terra': install.packages("terra")
 ▶ Simulate	▶ Смоделировать
