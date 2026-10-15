@@ -1,7 +1,6 @@
 //! The native runner. A stub: it finds `Rscript` but does not execute the script yet.
 
 use std::path::PathBuf;
-use std::process::Command;
 
 use crate::{ExecutionUpdate, RExecutionInput, RExecutionOutput, RRunnerError, RScriptRunner};
 
@@ -10,16 +9,9 @@ use crate::{ExecutionUpdate, RExecutionInput, RExecutionOutput, RRunnerError, RS
 pub struct RscriptRunner;
 
 impl RscriptRunner {
-    /// The `Rscript` program: `RUSTGIS_RSCRIPT` if set, else `Rscript` on the PATH.
+    /// The `Rscript` program that answers `--version` (see `discover::find`).
     pub fn locate(&self) -> Result<PathBuf, RRunnerError> {
-        if let Some(path) = std::env::var_os("RUSTGIS_RSCRIPT").filter(|p| !p.is_empty()) {
-            return Ok(PathBuf::from(path));
-        }
-        match Command::new("Rscript").arg("--version").output() {
-            Ok(out) if out.status.success() => Ok(PathBuf::from("Rscript")),
-            Ok(out) => Err(RRunnerError::Failed(format!("Rscript --version exited with {}", out.status))),
-            Err(_) => Err(RRunnerError::NotFound),
-        }
+        crate::discover::find().map(|(exe, _)| exe).ok_or(RRunnerError::NotFound)
     }
 }
 

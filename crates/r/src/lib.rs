@@ -10,10 +10,14 @@ pub mod stage;
 pub mod wire;
 
 #[cfg(not(target_arch = "wasm32"))]
+mod discover;
+#[cfg(not(target_arch = "wasm32"))]
 mod native;
 #[cfg(target_arch = "wasm32")]
 mod web;
 
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod discover_tests;
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod harness_tests;
 #[cfg(test)]
@@ -25,6 +29,8 @@ mod stage_tests;
 #[cfg(test)]
 mod tests;
 
+#[cfg(not(target_arch = "wasm32"))]
+pub use discover::{choose, find, ready, version_of};
 #[cfg(not(target_arch = "wasm32"))]
 pub use native::RscriptRunner;
 #[cfg(target_arch = "wasm32")]
