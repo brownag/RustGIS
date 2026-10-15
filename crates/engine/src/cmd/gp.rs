@@ -8,7 +8,7 @@ use super::{need_layers, ps};
 use crate::{CmdResult, CommandSpec as C, GpRecord, Session};
 
 pub fn commands() -> Vec<C> {
-    let mut v = vec![
+    let v = vec![
         C::new("gp.run", "Run Tool", "Analyze › Geoprocessing", run).when(need_layers).params(r#"{"tool": tool id, "params": {...} (a layer by name; a standalone table by name or id)}"#),
         C::new("gp.spatialJoin", "Spatial Join", "Analyze › Overlay", spatial_join)
             .when(need_layers)
@@ -49,16 +49,19 @@ pub fn commands() -> Vec<C> {
         }),
     ];
     #[cfg(feature = "r")]
-    v.push(
-        C::new("gp.runR", "Run R Script", "Analyze › Geoprocessing", run_r)
-            .params(r#"{"script": the R code, "inputs"?: [layer names], "args"?: {...} (values for the script), "timeout_s"?: seconds}"#),
-    );
-    #[cfg(feature = "r")]
-    v.push(
-        C::new("gp.setRscript", "Locate Rscript", "Analyze › Geoprocessing", set_rscript)
-            .view()
-            .params(r#"{"path"?: "the Rscript program (empty: look in the usual places)"}"#),
-    );
+    let v = {
+        let mut v = v;
+        v.push(
+            C::new("gp.runR", "Run R Script", "Analyze › Geoprocessing", run_r)
+                .params(r#"{"script": the R code, "inputs"?: [layer names], "args"?: {...} (values for the script), "timeout_s"?: seconds}"#),
+        );
+        v.push(
+            C::new("gp.setRscript", "Locate Rscript", "Analyze › Geoprocessing", set_rscript)
+                .view()
+                .params(r#"{"path"?: "the Rscript program (empty: look in the usual places)"}"#),
+        );
+        v
+    };
     v
 }
 
@@ -165,13 +168,12 @@ pub fn r_complete(s: &mut Session, id: u64, ran: Result<rustgis_r::RExecutionOut
         .position(|(n, j, ..)| *n == id && matches!(j, ExternalJob::R(_)))
         .ok_or("the R script's run was dropped (its project was closed, or too many runs were waiting)")?;
     let (_, job, params, t0) = s.started.remove(i);
-    let job = match job {
-        ExternalJob::R(job) => job,
-        #[cfg(feature = "geolibre")]
-        ExternalJob::GeoLibre(_) => {
-            return Err("the R script's run was dropped (its project was closed, or too many runs were waiting)".into());
-        }
+    #[cfg(feature = "geolibre")]
+    let ExternalJob::R(job) = job else {
+        return Err("the R script's run was dropped (its project was closed, or too many runs were waiting)".into());
     };
+    #[cfg(not(feature = "geolibre"))]
+    let ExternalJob::R(job) = job;
     if s.r_running == Some(id) {
         s.r_running = None;
     }
@@ -199,10 +201,14 @@ pub fn r_complete(s: &mut Session, id: u64, ran: Result<rustgis_r::RExecutionOut
     if s.r_running.is_some() {
         return Ok(None);
     }
+    #[cfg(feature = "geolibre")]
     let next = s.started.iter().find_map(|(n, j, ..)| match j {
         ExternalJob::R(job) => Some((*n, job.input.clone())),
-        #[cfg(feature = "geolibre")]
         ExternalJob::GeoLibre(_) => None,
+    });
+    #[cfg(not(feature = "geolibre"))]
+    let next = s.started.first().map(|(n, j, ..)| match j {
+        ExternalJob::R(job) => (*n, job.input.clone()),
     });
     match next {
         Some((next_id, input)) => {
