@@ -1,5 +1,4 @@
 use super::*;
-use std::cell::RefCell;
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
@@ -52,20 +51,88 @@ fn hostile_json_is_an_error_not_a_panic() {
 
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
-fn stub_run_reports_progress_once_and_is_marked_stub() -> TestResult {
-    let updates = RefCell::new(Vec::new());
-    let out = RscriptRunner.run(&sample_input(), &|u| updates.borrow_mut().push(u))?;
-    assert_eq!(out.metadata["stub"], serde_json::Value::Bool(true));
-    assert_eq!(updates.borrow().as_slice(), &[ExecutionUpdate::Progress(1.0)]);
+fn run_without_r_reports_the_missing_program_or_runs() -> TestResult {
+    // The sample input's geojson layer is refused before the program is looked for, so use no layers.
+    let input = RExecutionInput { script: "1 + 1".into(), ..Default::default() };
+    let _r = crate::harness_tests::lock_r();
+    let result = RscriptRunner.run(&input, &|_| {});
+    if RscriptRunner.locate().is_err() {
+        println!("skipped: Rscript not available");
+        assert_eq!(result, Err(RRunnerError::NotFound));
+    } else {
+        assert!(result.is_ok(), "{result:?}");
+    }
     Ok(())
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
-fn stub_run_accepts_an_empty_script_without_panicking() -> TestResult {
+fn run_refuses_an_empty_script() -> TestResult {
     let input = RExecutionInput { script: String::new(), layers: Vec::new(), args: serde_json::Value::Null, ..Default::default() };
-    let out = default_runner().run(&input, &|_| {})?;
-    assert_eq!(out.metadata["stub"], serde_json::Value::Bool(true));
+    let Err(err) = default_runner().run(&input, &|_| {}) else {
+        return Err("expected the empty script to be refused".into());
+    };
+    assert!(err.to_string().contains("the script is empty"), "{err}");
+    Ok(())
+}
+
+/// A folder under the temp dir with an `out/` inside, removed on drop.
+#[cfg(not(target_arch = "wasm32"))]
+struct CapsDir(std::path::PathBuf);
+
+#[cfg(not(target_arch = "wasm32"))]
+impl CapsDir {
+    fn new(test: &str) -> std::io::Result<Self> {
+        let base = std::env::temp_dir().join(format!("rustgis-r-caps-{}-{test}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(base.join("out"))?;
+        Ok(Self(base))
+    }
+
+    fn out(&self) -> std::path::PathBuf {
+        self.0.join("out")
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl Drop for CapsDir {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn collect_outputs_refuses_too_many_and_oversize_files() -> TestResult {
+    let dir = CapsDir::new("limits")?;
+    for i in 0..=MAX_FILES {
+        std::fs::write(dir.out().join(format!("f{i}.txt")), b"x")?;
+    }
+    let Err(err) = crate::native::collect_outputs(&dir.out()) else {
+        return Err("expected too many files to be refused".into());
+    };
+    assert!(err.contains("at most 256 files"), "{err}");
+
+    let big = CapsDir::new("oversize")?;
+    std::fs::File::create(big.out().join("big.bin"))?.set_len(MAX_FILE_BYTES as u64 + 1)?;
+    let Err(err) = crate::native::collect_outputs(&big.out()) else {
+        return Err("expected the oversize file to be refused".into());
+    };
+    assert!(err.contains("limit"), "{err}");
+    Ok(())
+}
+
+#[cfg(all(not(target_arch = "wasm32"), unix))]
+#[test]
+fn collect_outputs_skips_folders_and_symlinks() -> TestResult {
+    let dir = CapsDir::new("links")?;
+    let secret = dir.0.join("secret.txt");
+    std::fs::write(&secret, b"secret")?;
+    std::fs::create_dir(dir.out().join("sub"))?;
+    std::os::unix::fs::symlink(&secret, dir.out().join("link"))?;
+    std::fs::write(dir.out().join("kept.txt"), b"ok")?;
+    let files = crate::native::collect_outputs(&dir.out())?;
+    assert_eq!(files, vec![RFile { path: "out/kept.txt".into(), data: b"ok".to_vec() }]);
     Ok(())
 }
 

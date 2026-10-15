@@ -1,21 +1,27 @@
 // End-to-end tests: the real bootstrap.R under Rscript. Each test skips when Rscript, jsonlite
 // or sf is missing.
 
+use crate::RScriptRunner;
 use crate::RscriptRunner;
-use crate::job::build_job_files;
 use crate::manifest::convert_output;
 use crate::stage::stage_dataset;
-use crate::wire::{RExecutionInput, RExecutionOutput, RFile};
+use crate::wire::RExecutionInput;
 use rustgis_analysis::{Output, OutputLayer, ToolResult};
 use rustgis_data::{Coord, Dataset, Feature, Field, FieldType, Geometry, GeometryType, Value};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
-use std::time::{Duration, Instant};
+use std::sync::{Mutex, MutexGuard};
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
-/// How long one script run may take before it is killed.
-const RUN_LIMIT: Duration = Duration::from_secs(60);
+/// Serializes the cases that run R. The timeout case compares the job folders in the temp dir
+/// before and after its run, which another running case would change.
+static R_RUNS: Mutex<()> = Mutex::new(());
+
+/// Holds the R-run lock for the rest of a test.
+pub(crate) fn lock_r() -> MutexGuard<'static, ()> {
+    R_RUNS.lock().unwrap_or_else(|e| e.into_inner())
+}
 
 /// Whether R with jsonlite and sf is available. Prints a skip message when it is not.
 fn skip_without_r() -> bool {
@@ -34,28 +40,6 @@ fn skip_without_r() -> bool {
         println!("skipped: Rscript with jsonlite and sf not available");
     }
     !ready
-}
-
-/// A job directory under the system temp dir, named by process and test. Removed on drop.
-struct ScratchDir(PathBuf);
-
-impl ScratchDir {
-    fn new(test: &str) -> std::io::Result<Self> {
-        let dir = std::env::temp_dir().join(format!("rustgis-r-harness-{}-{test}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(&dir)?;
-        Ok(Self(dir))
-    }
-
-    fn path(&self) -> &Path {
-        &self.0
-    }
-}
-
-impl Drop for ScratchDir {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
 }
 
 /// Three points named "Cities", at lon 0, 1 and 2.
@@ -82,60 +66,20 @@ fn cities_rows(name: &str) -> Option<usize> {
     (name == "Cities").then_some(3)
 }
 
-/// Writes the job files, runs bootstrap.R in `dir`, and reads back the files under `out/`.
-fn run_job(input: &RExecutionInput, dir: &Path) -> Result<RExecutionOutput, String> {
-    let files = build_job_files(input)?;
-    for file in &files {
-        let path = dir.join(&file.path);
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
-        }
-        std::fs::write(path, &file.data).map_err(|e| e.to_string())?;
-    }
-
-    // Output goes to a file, not a pipe, so the child never blocks on a full pipe.
-    let log = std::fs::File::create(dir.join("rscript.log")).map_err(|e| e.to_string())?;
-    let log_err = log.try_clone().map_err(|e| e.to_string())?;
-    let program = RscriptRunner.locate().map_err(|e| e.to_string())?;
-    let mut child = Command::new(program)
-        .args(["--no-save", "--no-restore", "--no-init-file", "bootstrap.R"])
-        .current_dir(dir)
-        .stdin(Stdio::null())
-        .stdout(log)
-        .stderr(log_err)
-        .spawn()
-        .map_err(|e| e.to_string())?;
-    let start = Instant::now();
-    loop {
-        match child.try_wait().map_err(|e| e.to_string())? {
-            Some(_) => break,
-            None if start.elapsed() < RUN_LIMIT => std::thread::sleep(Duration::from_millis(20)),
-            None => {
-                let _ = child.kill();
-                let _ = child.wait();
-                return Err("the R script ran for more than 60 seconds".into());
-            }
-        }
-    }
-
-    let mut out_files = Vec::new();
-    if let Ok(entries) = std::fs::read_dir(dir.join("out")) {
-        for entry in entries {
-            let entry = entry.map_err(|e| e.to_string())?;
-            let name = entry.file_name().to_string_lossy().into_owned();
-            let data = std::fs::read(entry.path()).map_err(|e| e.to_string())?;
-            out_files.push(RFile { path: format!("out/{name}"), data });
-        }
-    }
-    out_files.sort_by(|a, b| a.path.cmp(&b.path));
-    Ok(RExecutionOutput { files: out_files, ..Default::default() })
+/// Runs the script with the native runner and converts its output.
+fn run_case(input: &RExecutionInput) -> Result<ToolResult, String> {
+    let out = RscriptRunner.run(input, &|_| {}).map_err(|e| e.to_string())?;
+    convert_output(&out, &cities_rows)
 }
 
-/// Runs one case in its own scratch dir and converts the output.
-fn run_case(test: &str, input: &RExecutionInput) -> Result<ToolResult, String> {
-    let scratch = ScratchDir::new(test).map_err(|e| e.to_string())?;
-    let out = run_job(input, scratch.path())?;
-    convert_output(&out, &cities_rows)
+/// The job folders this process has left in the temp dir.
+fn job_folders() -> Vec<PathBuf> {
+    let prefix = format!("rustgis-r-{}-", std::process::id());
+    let Ok(entries) = std::fs::read_dir(std::env::temp_dir()) else { return Vec::new() };
+    entries
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|p| p.file_name().is_some_and(|n| n.to_string_lossy().starts_with(&prefix)))
+        .collect()
 }
 
 #[test]
@@ -143,6 +87,7 @@ fn harness_runs_script_and_returns_layers() -> TestResult {
     if skip_without_r() {
         return Ok(());
     }
+    let _r = lock_r();
     let input = RExecutionInput {
         script: r#"
 cities <- rgis_read_layer("Cities")
@@ -155,7 +100,7 @@ rgis_log("done")
         layers: vec![stage_dataset(&point_dataset(), &[])?],
         ..Default::default()
     };
-    let result = run_case("harness_runs_script_and_returns_layers", &input)?;
+    let result = run_case(&input)?;
     let Output::Layers(layers) = result.output else {
         return Err("expected layers".into());
     };
@@ -169,12 +114,13 @@ fn harness_select_returns_zero_based_rows() -> TestResult {
     if skip_without_r() {
         return Ok(());
     }
+    let _r = lock_r();
     let input = RExecutionInput {
         script: r#"rgis_select("Cities", c(1, 2))"#.into(),
         layers: vec![stage_dataset(&point_dataset(), &[])?],
         ..Default::default()
     };
-    let result = run_case("harness_select_returns_zero_based_rows", &input)?;
+    let result = run_case(&input)?;
     let Output::Selection { layer, rows } = result.output else {
         return Err("expected a selection".into());
     };
@@ -188,8 +134,9 @@ fn harness_script_error_is_failure() -> TestResult {
     if skip_without_r() {
         return Ok(());
     }
+    let _r = lock_r();
     let input = RExecutionInput { script: r#"stop("boom")"#.into(), ..Default::default() };
-    let Err(err) = run_case("harness_script_error_is_failure", &input) else {
+    let Err(err) = run_case(&input) else {
         return Err("expected the script to fail".into());
     };
     assert!(err.contains("boom"), "{err}");
@@ -201,6 +148,7 @@ fn harness_projected_without_crs_is_refused() -> TestResult {
     if skip_without_r() {
         return Ok(());
     }
+    let _r = lock_r();
     let input = RExecutionInput {
         script: r#"
 x <- sf::st_as_sf(data.frame(x = 500000, y = 4000000), coords = c("x", "y"))
@@ -209,7 +157,7 @@ rgis_write_layer(x, "Projected")
         .into(),
         ..Default::default()
     };
-    let Err(err) = run_case("harness_projected_without_crs_is_refused", &input) else {
+    let Err(err) = run_case(&input) else {
         return Err("expected the script to fail".into());
     };
     assert!(err.contains("no CRS"), "{err}");
@@ -221,6 +169,7 @@ fn harness_staged_selection_is_visible() -> TestResult {
     if skip_without_r() {
         return Ok(());
     }
+    let _r = lock_r();
     let input = RExecutionInput {
         script: r#"
 n <- nrow(rgis_read_layer("Cities"))
@@ -232,11 +181,27 @@ rgis_write_table(data.frame(n = n), "Count")
         layers: vec![stage_dataset(&point_dataset(), &[1])?],
         ..Default::default()
     };
-    let result = run_case("harness_staged_selection_is_visible", &input)?;
+    let result = run_case(&input)?;
     let Output::Layers(layers) = &result.output else {
         return Err("expected layers".into());
     };
     assert!(matches!(layers.as_slice(), [OutputLayer::Table(_)]));
     assert!(result.messages.iter().any(|m| m == "rows 1"), "{:?}", result.messages);
+    Ok(())
+}
+
+#[test]
+fn harness_timeout_stops_the_script() -> TestResult {
+    if skip_without_r() {
+        return Ok(());
+    }
+    let _r = lock_r();
+    let before = job_folders();
+    let input = RExecutionInput { script: "Sys.sleep(30)".into(), timeout_s: Some(1), ..Default::default() };
+    let Err(err) = run_case(&input) else {
+        return Err("expected the script to be stopped".into());
+    };
+    assert!(err.contains("stopped after 1 s"), "{err}");
+    assert_eq!(job_folders(), before, "the job folder was left behind");
     Ok(())
 }
