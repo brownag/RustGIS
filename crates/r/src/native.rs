@@ -26,6 +26,11 @@ impl RscriptRunner {
 impl RScriptRunner for RscriptRunner {
     fn run(&self, _input: &RExecutionInput, progress: &dyn Fn(ExecutionUpdate)) -> Result<RExecutionOutput, RRunnerError> {
         progress(ExecutionUpdate::Progress(1.0));
-        Ok(RExecutionOutput { tables: Vec::new(), stdout: String::new(), metadata: serde_json::json!({ "stub": true }) })
+        Ok(RExecutionOutput {
+            tables: Vec::new(),
+            stdout: String::new(),
+            metadata: serde_json::json!({ "stub": true }),
+            ..Default::default()
+        })
     }
 }

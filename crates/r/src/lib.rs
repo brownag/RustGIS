@@ -3,11 +3,25 @@
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
+pub mod harness;
+pub mod job;
+pub mod manifest;
+pub mod stage;
+pub mod wire;
+
 #[cfg(not(target_arch = "wasm32"))]
 mod native;
 #[cfg(target_arch = "wasm32")]
 mod web;
 
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod harness_tests;
+#[cfg(test)]
+mod job_tests;
+#[cfg(test)]
+mod manifest_tests;
+#[cfg(test)]
+mod stage_tests;
 #[cfg(test)]
 mod tests;
 
@@ -16,31 +30,12 @@ pub use native::RscriptRunner;
 #[cfg(target_arch = "wasm32")]
 pub use web::WebRRunner;
 
+pub use wire::{
+    DEFAULT_TIMEOUT_S, MAX_FILE_BYTES, MAX_FILES, MAX_MANIFEST_BYTES, MAX_MESSAGES, MAX_SCRIPT_BYTES, RExecutionInput, RExecutionOutput,
+    RFile, RLayerInput, RLayerKind, clamp_timeout, clean_lang,
+};
+
 use serde::{Deserialize, Serialize};
-
-/// A layer handed to a script: its name, its format and its bytes.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct RLayerInput {
-    pub name: String,
-    pub format: String,
-    pub data: Vec<u8>,
-}
-
-/// What a script runs on: the code, its input layers and its arguments.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct RExecutionInput {
-    pub script: String,
-    pub layers: Vec<RLayerInput>,
-    pub args: serde_json::Value,
-}
-
-/// What a script produced.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct RExecutionOutput {
-    pub tables: Vec<serde_json::Value>,
-    pub stdout: String,
-    pub metadata: serde_json::Value,
-}
 
 /// The severity of a log line from a running script.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
