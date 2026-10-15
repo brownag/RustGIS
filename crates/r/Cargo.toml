@@ -1,0 +1,15 @@
+[package]
+name = "rustgis-r"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "RustGIS L3: the R script runner (scaffold): the execution data model and a stub runner, with a webR hook planned for the browser"
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }

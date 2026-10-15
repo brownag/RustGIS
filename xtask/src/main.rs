@@ -19,6 +19,7 @@ const LAYERS: &[(&str, u8)] = &[
     ("tiles", 2),
     ("render", 3),
     ("geolibre", 3),
+    ("r", 3),
     ("plugins", 3),
     ("engine", 4),
     ("assistant", 5),

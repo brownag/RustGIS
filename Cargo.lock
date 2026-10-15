@@ -4628,6 +4628,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustgis-r"
+version = "0.3.0"
+dependencies = [
+ "log",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "rustgis-render"
 version = "0.3.0"
 dependencies = [
