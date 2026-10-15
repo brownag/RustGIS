@@ -12,7 +12,7 @@
 //! network use left is drawing web tile layers that the project the user opened already has.
 
 use rustgis_engine::Session;
-use rustgis_engine::cmd::plugins::{Reach, reaches, user_only};
+use rustgis_engine::cmd::plugins::{Reach, reaches, runs_r, user_only_call};
 use serde_json::{Value, json};
 
 use crate::provider::ToolCall;
@@ -282,9 +282,14 @@ impl Server {
                 "'{id}' is reserved to the user: it would replace the project they have open in RustGIS. Work on the open project instead, or ask the user to open another"
             ));
         }
-        if user_only(&id) && !project && !matches!(id.as_str(), "edit.undo" | "edit.redo") {
+        if user_only_call(&id, &params) && !project && !matches!(id.as_str(), "edit.undo" | "edit.redo") {
+            // A tool run as R code is named by its tool, not by `gp.run`.
+            let named = match params.get("tool").and_then(Value::as_str) {
+                Some(tool) if runs_r(&id, &params) && id.eq_ignore_ascii_case("gp.run") => tool.to_string(),
+                _ => id.clone(),
+            };
             return Some(format!(
-                "'{id}' is reserved to the user (plugin management, scripts, tasks, models and the GeoLibre runner); run it in RustGIS itself"
+                "'{named}' is reserved to the user (plugin management, scripts, tasks, models, R code and the GeoLibre runner); run it in RustGIS itself"
             ));
         }
         let why = if id.starts_with(rustgis_engine::plugins::PREFIX) {

@@ -6,7 +6,7 @@
 //! beyond the project (files, the network, the user's own automation) need the user's approval
 //! first ([`gate`]).
 
-use rustgis_engine::cmd::plugins::{Reach, reaches, user_only};
+use rustgis_engine::cmd::plugins::{Reach, reaches, runs_r, user_only};
 use rustgis_engine::{Session, analysis};
 use serde_json::{Value, json};
 
@@ -178,6 +178,9 @@ pub fn gate(s: &Session, call: &ToolCall) -> Option<String> {
         return (!reasons.is_empty()).then(|| reasons.join("; "));
     }
     let (id, params) = target(call)?;
+    if runs_r(&id, &params) {
+        return Some("it runs R code, which can do anything you can do on this computer".into());
+    }
     if id.starts_with(rustgis_engine::plugins::PREFIX) {
         return Some("it runs a plugin's command".into());
     }
@@ -186,7 +189,7 @@ pub fn gate(s: &Session, call: &ToolCall) -> Option<String> {
             "project.new" | "project.open" | "project.openText" | "project.sample" | "project.fromTemplate" => {
                 "it replaces the open project".into()
             }
-            _ => "it is reserved to you (plugins, scripts, tasks, models and the GeoLibre runner)".into(),
+            _ => "it is reserved to you (plugins, scripts, tasks, models, R code and the GeoLibre runner)".into(),
         });
     }
     let spec = s.registry.get(&id)?;
@@ -207,9 +210,13 @@ pub fn gate(s: &Session, call: &ToolCall) -> Option<String> {
 
 /// What "allow for this conversation" remembers for a call: its command (a tool's id for
 /// `gp.run`) with its exact parameters, so allowing one file or address allows no other. Only file
-/// and network access can be allowed for good: plugin commands, the user's own automation and
-/// replacing the project are asked about every time.
+/// and network access can be allowed for good: plugin commands, the user's own automation, R code
+/// and replacing the project are asked about every time.
 pub fn approval_key(s: &Session, call: &ToolCall) -> Option<String> {
+    // R code is asked about every time.
+    if target(call).is_some_and(|(id, params)| runs_r(&id, &params)) {
+        return None;
+    }
     let (command, key) = match call.name.as_str() {
         "run_command" => {
             let id = str_arg(&call.args, "command")?;

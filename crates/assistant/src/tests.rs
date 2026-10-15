@@ -176,6 +176,26 @@ fn gate_rules() {
     let mut file = pts.clone();
     file["path"] = json!("/tmp/x.tif");
     assert!(g("run_command", json!({"command": "raster.georeference", "params": file})).is_some());
+    for (name, args) in [
+        ("run_command", json!({"command": "gp.runR", "params": {"script": "1"}})),
+        ("run_command", json!({"command": "gp.run", "params": {"tool": "r:x"}})),
+        ("run_tool", json!({"tool": "r:x"})),
+        ("run_tool", json!({"tool": " R:Kriging "})),
+    ] {
+        let w = g(name, args);
+        assert!(w.as_deref().is_some_and(|w| w.contains("R code")), "{name}: {w:?}");
+    }
+}
+
+#[test]
+fn r_code_is_asked_every_time() {
+    let s = sample();
+    let key = |name: &str, args: Value| tools::approval_key(&s, &ToolCall { id: "x".into(), name: name.into(), args });
+    assert!(key("run_command", json!({"command": "gp.runR", "params": {"script": "1"}})).is_none());
+    assert!(key("run_command", json!({"command": "gp.run", "params": {"tool": "r:x"}})).is_none());
+    assert!(key("run_tool", json!({"tool": "r:x"})).is_none());
+    // A geoprocessing tool still gets a key, so the `None`s above are the R rule.
+    assert!(key("run_tool", json!({"tool": "buffer", "params": {"input": "Cities", "distance": 100}})).is_some());
 }
 
 /// What a command says beside its result reaches the model (issue #85).
@@ -933,6 +953,11 @@ fn mcp_limits_what_the_agent_may_do() {
         assert!(err && text.contains("reserved"), "{text}");
         let (err, _) = call_tool(server, &mut s, "run_command", json!({"command": "plugin.uninstall", "params": {"id": "x"}}));
         assert!(err);
+        // R code is reserved to the user too, and the refusal names the R tool.
+        let (err, text) = call_tool(server, &mut s, "run_tool", json!({"tool": "r:x"}));
+        assert!(err && text.contains("reserved") && text.contains("r:x"), "{text}");
+        let (err, text) = call_tool(server, &mut s, "run_command", json!({"command": "gp.runR", "params": {"script": "1"}}));
+        assert!(err && text.contains("reserved"), "{text}");
     }
     // Opening a project or template reads a file.
     for (cmd, params) in [("project.open", json!({"path": "a.rgis"})), ("project.fromTemplate", json!({"path": "a.rgistemplate"}))] {

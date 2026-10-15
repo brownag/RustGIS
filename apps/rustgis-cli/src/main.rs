@@ -327,7 +327,7 @@ fn ask(s: &mut Session, args: &[String]) -> Result<(), String> {
         r
     };
     // `--yes` allows file and network access; actions reserved to the user (plugins, scripts,
-    // tasks, models, replacing the project) are never run from here.
+    // tasks, models, R code, replacing the project) are never run from here.
     agent::run_blocking(&mut a, &prompt, s, send, |what, why, access| {
         let allow = yes && access;
         if !allow {
