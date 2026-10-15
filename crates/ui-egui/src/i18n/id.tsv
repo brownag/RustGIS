@@ -3104,4 +3104,9 @@ Zoom To World	Zoom ke Dunia
 ±, dequantised	±, didekuantisasi
 — fps	— fps
 ⌘K	⌘K
+Locate Rscript	Temukan Rscript
+Rscript was not found	Rscript tidak ditemukan
+RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS memerlukan paket R 'jsonlite'; pasang dengan install.packages("jsonlite")
+this script needs geometry; install the R package 'sf': install.packages("sf")	skrip ini memerlukan geometri; pasang paket R 'sf': install.packages("sf")
+this script needs rasters; install the R package 'terra': install.packages("terra")	skrip ini memerlukan raster; pasang paket R 'terra': install.packages("terra")
 ▶ Simulate	▶ Simulasikan

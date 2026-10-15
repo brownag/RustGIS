@@ -1105,7 +1105,8 @@ pub fn notices(app: &mut RustGisApp, ctx: &egui::Context) {
     if total > app.map.notices_seen {
         for n in app.session.notices.iter().skip(app.map.notices_seen) {
             app.map.toasts_made += 1;
-            app.map.toasts.push(Toast { text: n.text.clone(), error: n.error, at: now, id: app.map.toasts_made });
+            let text = crate::rnotices::translate(&n.text).unwrap_or_else(|| n.text.clone());
+            app.map.toasts.push(Toast { text, error: n.error, at: now, id: app.map.toasts_made });
         }
         app.map.notices_seen = total;
     }

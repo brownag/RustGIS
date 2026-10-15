@@ -3104,4 +3104,9 @@ Zoom To World	缩放至世界
 ±, dequantised	±，已反量化
 — fps	— fps
 ⌘K	⌘K
+Locate Rscript	定位 Rscript
+Rscript was not found	未找到 Rscript
+RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS 需要 R 软件包 'jsonlite';请用 install.packages("jsonlite") 安装
+this script needs geometry; install the R package 'sf': install.packages("sf")	此脚本需要几何数据;请安装 R 软件包 'sf': install.packages("sf")
+this script needs rasters; install the R package 'terra': install.packages("terra")	此脚本需要栅格数据;请安装 R 软件包 'terra': install.packages("terra")
 ▶ Simulate	▶ 模拟

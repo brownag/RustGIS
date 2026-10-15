@@ -3104,4 +3104,9 @@ Zoom To World	世界にズーム
 ±, dequantised	±、逆量子化
 — fps	— fps
 ⌘K	⌘K
+Locate Rscript	Rscript の場所を指定
+Rscript was not found	Rscript が見つかりません
+RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS には R パッケージ 'jsonlite' が必要です。install.packages("jsonlite") でインストールしてください
+this script needs geometry; install the R package 'sf': install.packages("sf")	このスクリプトにはジオメトリが必要です。R パッケージ 'sf' をインストールしてください: install.packages("sf")
+this script needs rasters; install the R package 'terra': install.packages("terra")	このスクリプトにはラスターが必要です。R パッケージ 'terra' をインストールしてください: install.packages("terra")
 ▶ Simulate	▶ シミュレート

@@ -3104,4 +3104,9 @@ Zoom To World	세계로 확대/축소
 ±, dequantised	±, 역양자화됨
 — fps	— fps
 ⌘K	⌘K
+Locate Rscript	Rscript 찾기
+Rscript was not found	Rscript를 찾을 수 없습니다
+RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS에는 R 패키지 'jsonlite'가 필요합니다. install.packages("jsonlite")로 설치하세요
+this script needs geometry; install the R package 'sf': install.packages("sf")	이 스크립트에는 지오메트리가 필요합니다. R 패키지 'sf'를 설치하세요: install.packages("sf")
+this script needs rasters; install the R package 'terra': install.packages("terra")	이 스크립트에는 래스터가 필요합니다. R 패키지 'terra'를 설치하세요: install.packages("terra")
 ▶ Simulate	▶ 시뮬레이션

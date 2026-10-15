@@ -49,6 +49,7 @@ mod portalsui;
 #[cfg(not(target_arch = "wasm32"))]
 mod relayshot;
 mod reportpane;
+mod rnotices;
 mod ribbon;
 mod s3ui;
 mod scriptcolor;
@@ -871,6 +872,12 @@ impl RustGisApp {
         // A GeoLibre runner located earlier (Locate… in the Tools pane).
         if let Some(path) = self.services.load_pref.as_ref().and_then(|load| load("geolibre_runner")).filter(|p| !p.is_empty())
             && let Err(e) = self.session.run("gp.setGeolibre", &json!({"path": path}))
+        {
+            log::warn!("{e}");
+        }
+        // An Rscript located earlier (Locate Rscript in the Analyze ribbon).
+        if let Some(path) = self.services.load_pref.as_ref().and_then(|load| load("rscript")).filter(|p| !p.is_empty())
+            && let Err(e) = self.session.run("gp.setRscript", &json!({"path": path}))
         {
             log::warn!("{e}");
         }

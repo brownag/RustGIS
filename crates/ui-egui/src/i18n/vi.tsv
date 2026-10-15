@@ -3104,4 +3104,9 @@ Zoom To World	Thu phóng tới thế giới
 ±, dequantised	±, đã giải lượng tử hóa
 — fps	— fps
 ⌘K	⌘K
+Locate Rscript	Tìm Rscript
+Rscript was not found	Không tìm thấy Rscript
+RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS cần gói R 'jsonlite'; cài đặt bằng install.packages("jsonlite")
+this script needs geometry; install the R package 'sf': install.packages("sf")	tập lệnh này cần dữ liệu hình học; cài gói R 'sf': install.packages("sf")
+this script needs rasters; install the R package 'terra': install.packages("terra")	tập lệnh này cần raster; cài gói R 'terra': install.packages("terra")
 ▶ Simulate	▶ Mô phỏng

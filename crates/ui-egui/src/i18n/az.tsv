@@ -3104,4 +3104,9 @@ Zoom To World	Dünyaya yaxınlaşdır
 ±, dequantised	±, dekvantlaşdırılmış
 — fps	— kadr/san
 ⌘K	⌘K
+Locate Rscript	Rscript-i tap
+Rscript was not found	Rscript tapılmadı
+RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS 'jsonlite' R paketini tələb edir; onu install.packages("jsonlite") ilə quraşdırın
+this script needs geometry; install the R package 'sf': install.packages("sf")	bu skript həndəsə tələb edir; 'sf' R paketini quraşdırın: install.packages("sf")
+this script needs rasters; install the R package 'terra': install.packages("terra")	bu skript rasterlər tələb edir; 'terra' R paketini quraşdırın: install.packages("terra")
 ▶ Simulate	▶ Simulyasiya et

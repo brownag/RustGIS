@@ -3104,4 +3104,9 @@ Zoom To World	გადიდება მსოფლიოზე
 ±, dequantised	±, დეკვანტებული
 — fps	— კადრი/წმ
 ⌘K	⌘K
+Locate Rscript	Rscript-ის მოძებნა
+Rscript was not found	Rscript ვერ მოიძებნა
+RustGIS needs the R package 'jsonlite'; install it with install.packages("jsonlite")	RustGIS-ს სჭირდება R პაკეტი 'jsonlite'; დააინსტალირეთ install.packages("jsonlite")-ით
+this script needs geometry; install the R package 'sf': install.packages("sf")	ამ სკრიპტს გეომეტრია სჭირდება; დააინსტალირეთ R პაკეტი 'sf': install.packages("sf")
+this script needs rasters; install the R package 'terra': install.packages("terra")	ამ სკრიპტს რასტრები სჭირდება; დააინსტალირეთ R პაკეტი 'terra': install.packages("terra")
 ▶ Simulate	▶ სიმულაცია
