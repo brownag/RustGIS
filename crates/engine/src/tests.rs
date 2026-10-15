@@ -12337,3 +12337,18 @@ fn scans_have_no_coordinates_to_give_away() {
     assert!(s.run("share.exportRaster", &json!({"path": out.display().to_string()})).is_ok());
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[cfg(feature = "r")]
+#[test]
+fn r_script_stub_runs() {
+    let mut s = world();
+    assert!(s.run("gp.runR", &json!({})).is_err(), "a script is required");
+    assert!(s.run("gp.runR", &json!({"script": "  "})).is_err(), "an empty script is refused");
+    assert!(s.run("gp.runR", &json!({"script": "1+1", "inputs": ["No such layer"]})).is_err());
+    assert!(s.run("gp.runR", &json!({"script": "1+1", "args": [1]})).is_err(), "args must be an object");
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let out = s.run("gp.runR", &json!({"script": "1+1", "inputs": ["Countries"], "args": {"k": 1}})).unwrap();
+        assert_eq!(out["metadata"]["stub"], json!(true));
+    }
+}

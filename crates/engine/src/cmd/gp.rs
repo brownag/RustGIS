@@ -8,7 +8,7 @@ use super::{need_layers, ps};
 use crate::{CmdResult, CommandSpec as C, GpRecord, Session};
 
 pub fn commands() -> Vec<C> {
-    vec![
+    let mut v = vec![
         C::new("gp.run", "Run Tool", "Analyze › Geoprocessing", run).when(need_layers).params(r#"{"tool": tool id, "params": {...} (a layer by name; a standalone table by name or id)}"#),
         C::new("gp.spatialJoin", "Spatial Join", "Analyze › Overlay", spatial_join)
             .when(need_layers)
@@ -47,7 +47,67 @@ pub fn commands() -> Vec<C> {
             s.project.gp_history.clear();
             Ok(Value::Null)
         }),
-    ]
+    ];
+    #[cfg(feature = "r")]
+    v.push(
+        C::new("gp.runR", "Run R Script", "Analyze › Geoprocessing", run_r)
+            .params(r#"{"script": the R code, "inputs"?: [layer names], "args"?: {...} (values for the script)}"#),
+    );
+    v
+}
+
+/// A script to run with the R runner: its parameters checked (see [`r_start`]).
+#[cfg(feature = "r")]
+pub struct RRun {
+    pub input: rustgis_r::RExecutionInput,
+}
+
+/// The most script text a run takes (1 MB).
+#[cfg(feature = "r")]
+const MAX_R_SCRIPT: usize = 1 << 20;
+
+/// Checks `gp.runR` parameters: a non-empty `script` (at most 1 MB), `inputs` as layer names
+/// that exist on the map (their data is not sent yet), and `args` as an object.
+#[cfg(feature = "r")]
+pub fn r_start(s: &Session, params: &Value) -> Result<RRun, String> {
+    let script = ps(params, "script").map(str::trim).filter(|x| !x.is_empty()).ok_or("the R script is required")?;
+    if script.len() > MAX_R_SCRIPT {
+        return Err("the R script is over 1 MB".into());
+    }
+    let names = match params.get("inputs") {
+        None | Some(Value::Null) => &[][..],
+        Some(Value::Array(a)) => a.as_slice(),
+        Some(_) => return Err("inputs must be a list of layer names".into()),
+    };
+    let mut layers = Vec::with_capacity(names.len());
+    for name in names {
+        let name = name.as_str().ok_or("inputs must be a list of layer names")?;
+        let layer = s.map().layer_by_name(name).ok_or_else(|| format!("no layer named '{name}'"))?;
+        layers.push(rustgis_r::RLayerInput { name: layer.name.clone(), format: "placeholder".into(), data: Vec::new() });
+    }
+    let args = match params.get("args") {
+        None | Some(Value::Null) => json!({}),
+        Some(v @ Value::Object(_)) => v.clone(),
+        Some(_) => return Err("args must be an object".into()),
+    };
+    Ok(RRun { input: rustgis_r::RExecutionInput { script: script.to_string(), layers, args } })
+}
+
+/// Runs an R script: natively through the R runner; in the browser the app's R service runs it
+/// (not wired here yet), so this only checks the parameters.
+#[cfg(feature = "r")]
+fn run_r(s: &mut Session, p: &Value) -> CmdResult {
+    let run = r_start(s, p)?;
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let out = rustgis_r::default_runner().run(&run.input, &|_| {}).map_err(|e| e.to_string())?;
+        serde_json::to_value(out).map_err(|e| e.to_string())
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        let _ = run;
+        Err("gp.runR runs through the app's R service in the browser".into())
+    }
 }
 
 /// The GeoLibre tools (empty when the suite isn't installed, or the build doesn't include it).
