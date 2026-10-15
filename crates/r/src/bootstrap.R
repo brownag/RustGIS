@@ -12,9 +12,10 @@
 #   {"version":1, "ok":true, "error":null, "layers":[{"name","file","kind","format"}],
 #    "selection":{"layer","rows"} or null, "messages":[{"level","text"}]}
 # A script error writes ok:false and the error text. A script may return layers or a
-# selection, not both. The host treats a missing or invalid manifest as a failure. If
-# params.json or out/ cannot be read or made, the harness stops with no manifest. Otherwise
-# it exits 0 once the manifest is written.
+# selection, not both. Selection rows count within the rows rgis_read_layer returned for that
+# input. The host treats a missing or invalid manifest as a failure. If jsonlite is missing,
+# the harness writes a failure manifest by hand. If params.json or out/ cannot be read or made,
+# the harness stops with no manifest. Otherwise it exits 0 once the manifest is written.
 #
 # Helpers live in globalenv(), so the script (run in a child of globalenv()) can call them.
 # Private state lives in .rgis_state.
@@ -40,8 +41,8 @@
   invisible(name)
 }
 
-# Finds an input by name: exact match first, then case-insensitive.
-.rgis_find_input <- function(name) {
+# Finds an input by name: exact match first, then case-insensitive. NULL when there is none.
+.rgis_input_or_null <- function(name) {
   inputs <- .rgis_state$inputs
   for (inp in inputs) {
     if (identical(inp[["name"]], name)) return(inp)
@@ -49,6 +50,14 @@
   for (inp in inputs) {
     if (identical(tolower(inp[["name"]]), tolower(name))) return(inp)
   }
+  NULL
+}
+
+# Finds an input by name, or stops with the list of input names.
+.rgis_find_input <- function(name) {
+  inp <- .rgis_input_or_null(name)
+  if (!is.null(inp)) return(inp)
+  inputs <- .rgis_state$inputs
   available <- vapply(inputs, function(inp) as.character(inp[["name"]]), "")
   stop(sprintf("no input layer named '%s'; available: %s", name,
                if (length(available)) paste(available, collapse = ", ") else "none"),
@@ -141,7 +150,10 @@ rgis_select <- function(layer, rows) {
       any(rows != floor(rows)) || any(rows > .Machine$integer.max)) {
     stop("selected rows must be whole numbers, 1 or more", call. = FALSE)
   }
-  .rgis_state$selection[[layer]] <- sort(unique(as.integer(rows)))
+  # The rows go under the input's own name when an input matches, so the host maps them.
+  inp <- .rgis_input_or_null(layer)
+  key <- if (is.null(inp)) layer else as.character(inp[["name"]])
+  .rgis_state$selection[[key]] <- sort(unique(as.integer(rows)))
   invisible(rows)
 }
 
@@ -158,7 +170,10 @@ rgis_read_layer <- function(name) {
     return(x)
   }
   if (identical(kind, "table")) {
-    return(utils::read.csv(file, stringsAsFactors = FALSE))
+    x <- utils::read.csv(file, stringsAsFactors = FALSE)
+    sel <- unlist(inp[["selection"]])
+    if (length(sel)) x <- x[sel[sel <= nrow(x)], , drop = FALSE]
+    return(x)
   }
   if (identical(kind, "raster")) {
     .rgis_need("terra", "this script needs rasters; install the R package 'terra': install.packages(\"terra\")")
@@ -211,7 +226,17 @@ rgis_write_table <- function(df, name) {
 
 # Reads params.json, sets up out/, then runs the script.
 .rgis_main <- function() {
-  .rgis_need("jsonlite", "RustGIS needs the R package 'jsonlite'; install it with install.packages(\"jsonlite\")")
+  if (!requireNamespace("jsonlite", quietly = TRUE)) {
+    # Without jsonlite the JSON writer is missing, so the failure manifest is written by hand.
+    msg <- "RustGIS needs the R package 'jsonlite'; install it with install.packages(\"jsonlite\")"
+    msg <- gsub("\\", "\\\\", msg, fixed = TRUE)
+    msg <- gsub("\"", "\\\"", msg, fixed = TRUE)
+    dir.create("out", showWarnings = FALSE, recursive = TRUE)
+    writeLines(paste0("{\"version\":1,\"ok\":false,\"error\":\"", msg,
+                      "\",\"layers\":[],\"selection\":null,\"messages\":[]}"),
+               file.path("out", "manifest.json"))
+    return(invisible(NULL))
+  }
   params <- jsonlite::fromJSON("params.json", simplifyVector = FALSE)
   if (!is.list(params) || !isTRUE(params[["version"]] == 1)) {
     stop("params.json is not version 1", call. = FALSE)
