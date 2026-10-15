@@ -49,19 +49,19 @@ pub fn commands() -> Vec<C> {
         }),
     ];
     #[cfg(feature = "r")]
-    let v = {
-        let mut v = v;
-        v.push(
-            C::new("gp.runR", "Run R Script", "Analyze › Geoprocessing", run_r)
-                .params(r#"{"script": the R code, "inputs"?: [layer names], "args"?: {...} (values for the script), "timeout_s"?: seconds}"#),
-        );
-        v.push(
-            C::new("gp.setRscript", "Locate Rscript", "Analyze › Geoprocessing", set_rscript)
-                .view()
-                .params(r#"{"path"?: "the Rscript program (empty: look in the usual places)"}"#),
-        );
-        v
-    };
+    let v =
+        {
+            let mut v = v;
+            v.push(C::new("gp.runR", "Run R Script", "Analyze › Geoprocessing", run_r).params(
+                r#"{"script": the R code, "inputs"?: [layer names], "args"?: {...} (values for the script), "timeout_s"?: seconds}"#,
+            ));
+            v.push(
+                C::new("gp.setRscript", "Locate Rscript", "Analyze › Geoprocessing", set_rscript)
+                    .view()
+                    .params(r#"{"path"?: "the Rscript program (empty: look in the usual places)"}"#),
+            );
+            v
+        };
     v
 }
 

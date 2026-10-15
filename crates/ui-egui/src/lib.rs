@@ -49,8 +49,8 @@ mod portalsui;
 #[cfg(not(target_arch = "wasm32"))]
 mod relayshot;
 mod reportpane;
-mod rnotices;
 mod ribbon;
+mod rnotices;
 mod s3ui;
 mod scriptcolor;
 mod scriptcomplete;
