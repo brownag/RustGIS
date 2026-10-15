@@ -140,24 +140,71 @@ pub fn r_start(s: &mut Session, params: &Value) -> Result<Option<RRunStart>, Str
     Ok(start)
 }
 
-/// Runs an R script: natively through the R runner; in the browser the app's R service runs it
-/// (not wired here yet), so this only checks the parameters and the input names.
+/// Finishes an R run from [`r_start`]: its output becomes a result that `gp.finish` applies. Then
+/// it hands back the next queued R run for the host to launch, if none is under way.
+#[cfg(feature = "r")]
+pub fn r_complete(s: &mut Session, id: u64, ran: Result<rustgis_r::RExecutionOutput, String>) -> Result<Option<RRunStart>, String> {
+    let i = s
+        .started
+        .iter()
+        .position(|(n, j, ..)| *n == id && matches!(j, ExternalJob::R(_)))
+        .ok_or("the R script's run was dropped (its project was closed, or too many runs were waiting)")?;
+    let (_, job, params, t0) = s.started.remove(i);
+    let job = match job {
+        ExternalJob::R(job) => job,
+        #[cfg(feature = "geolibre")]
+        ExternalJob::GeoLibre(_) => return Err("the R script's run was dropped (its project was closed, or too many runs were waiting)".into()),
+    };
+    if s.r_running == Some(id) {
+        s.r_running = None;
+    }
+    // Reading the host's output parses outside `Session::run`'s guard: a bug in a reader must not
+    // take the app down.
+    let rows = job.rows;
+    let rows_of = |name: &str| rows.iter().find(|(n, _)| n.as_str() == name).map(|(_, n)| *n);
+    let result = ran.map_err(|e| format!("R script: {e}")).and_then(|out| {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| rustgis_r::manifest::convert_output(&out, &rows_of)))
+            .unwrap_or_else(|_| Err("R script: its output couldn't be read".into()))
+    });
+    s.pending.push(crate::PendingRun {
+        id,
+        tool: "R script".into(),
+        // No tool id: an R run isn't run again from the history.
+        tool_id: String::new(),
+        params,
+        result,
+        started: t0,
+        millis: now_ms().saturating_sub(t0),
+    });
+    if s.pending.len() > MAX_ASYNC_RUNS {
+        s.pending.remove(0);
+    }
+    if s.r_running.is_some() {
+        return Ok(None);
+    }
+    let next = s.started.iter().find_map(|(n, j, ..)| match j {
+        ExternalJob::R(job) => Some((*n, job.input.clone())),
+        #[cfg(feature = "geolibre")]
+        ExternalJob::GeoLibre(_) => None,
+    });
+    match next {
+        Some((next_id, input)) => {
+            s.r_running = Some(next_id);
+            Ok(Some(RRunStart { id: next_id, input }))
+        }
+        None => Ok(None),
+    }
+}
+
+/// Refuses an R script: its parameters and input names are checked, then it fails on every host,
+/// since the R runner isn't wired into the engine yet. It queues nothing.
 #[cfg(feature = "r")]
 fn run_r(s: &mut Session, p: &Value) -> CmdResult {
     let params = r_params(p)?;
     for name in &params.inputs {
         s.map().layer_by_name(name).ok_or_else(|| format!("no layer named '{name}'"))?;
     }
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        let input = rustgis_r::RExecutionInput { script: params.script, args: params.args, ..Default::default() };
-        let out = rustgis_r::default_runner().run(&input, &|_| {}).map_err(|e| e.to_string())?;
-        serde_json::to_value(out).map_err(|e| e.to_string())
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        Err("gp.runR runs through the app's R service in the browser".into())
-    }
+    Err("R scripts can't run in this build yet".into())
 }
 
 /// The GeoLibre tools (empty when the suite isn't installed, or the build doesn't include it).
