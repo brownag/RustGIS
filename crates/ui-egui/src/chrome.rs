@@ -418,11 +418,12 @@ pub fn status_bar(app: &mut RustGisApp, ui: &mut Ui) {
                     // Cut to the room left (the whole notice on hover), so a long one doesn't run
                     // over the selection count and coordinates.
                     if let Some(n) = app.session.notices.last() {
+                        let text = crate::rnotices::translate(&n.text).unwrap_or_else(|| n.text.clone());
                         ui.add(
-                            egui::Label::new(egui::RichText::new(&n.text).size(11.5).color(if n.error { t.red } else { t.text_dim }))
+                            egui::Label::new(egui::RichText::new(&text).size(11.5).color(if n.error { t.red } else { t.text_dim }))
                                 .truncate(),
                         )
-                        .on_hover_text(&n.text);
+                        .on_hover_text(&text);
                     }
                 });
             });
