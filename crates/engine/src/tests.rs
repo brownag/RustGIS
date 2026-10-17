@@ -1353,9 +1353,8 @@ fn gp_run_r_passes_the_interface_language_to_r() {
     }
     for (lang, expected) in [("de", "de"), ("zh", "zh_CN")] {
         let mut s = world();
-        s.lang = lang.into();
         let script = "rgis_write_table(data.frame(lang = Sys.getenv(\"LANGUAGE\")), \"L\")";
-        s.run("gp.runR", &json!({"script": script})).unwrap();
+        s.run("gp.runR", &json!({"script": script, "lang": lang})).unwrap();
         let table = s.project.tables.iter().find(|t| t.name == "L");
         let value = table.and_then(|t| t.dataset.features.first()).and_then(|f| f.attrs.first());
         assert_eq!(value, Some(&rustgis_data::Value::Text(expected.into())), "LANGUAGE for {lang}");

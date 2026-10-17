@@ -49,19 +49,18 @@ pub fn commands() -> Vec<C> {
         }),
     ];
     #[cfg(feature = "r")]
-    let v =
-        {
-            let mut v = v;
-            v.push(C::new("gp.runR", "Run R Script", "Analyze › Geoprocessing", run_r).params(
-                r#"{"script": the R code, "inputs"?: [layer names], "args"?: {...} (values for the script), "timeout_s"?: seconds}"#,
+    let v = {
+        let mut v = v;
+        v.push(C::new("gp.runR", "Run R Script", "Analyze › Geoprocessing", run_r).params(
+                r#"{"script": the R code, "inputs"?: [layer names], "args"?: {...} (values for the script), "timeout_s"?: seconds, "lang"?: "the interface language code (empty: English)"}"#,
             ));
-            v.push(
-                C::new("gp.setRscript", "Set Rscript", "Analyze › Geoprocessing", set_rscript)
-                    .view()
-                    .params(r#"{"path"?: "the Rscript program (empty: look in the usual places)"}"#),
-            );
-            v
-        };
+        v.push(
+            C::new("gp.setRscript", "Set Rscript", "Analyze › Geoprocessing", set_rscript)
+                .view()
+                .params(r#"{"path"?: "the Rscript program (empty: look in the usual places)"}"#),
+        );
+        v
+    };
     v
 }
 
@@ -88,6 +87,8 @@ pub struct RParams {
     pub args: Value,
     /// The time limit in seconds (clamped), or `None` for the default.
     pub timeout_s: Option<u64>,
+    /// The interface language code (such as `de`); empty means English.
+    pub lang: String,
 }
 
 /// Checks `gp.runR` parameters: a non-empty `script` (at most 1 MB), `inputs` as a list of layer
@@ -119,7 +120,8 @@ pub fn r_params(params: &Value) -> Result<RParams, String> {
             Some(rustgis_r::clamp_timeout(Some(n.max(0) as u64)))
         }
     };
-    Ok(RParams { script: script.to_string(), inputs, args, timeout_s })
+    let lang = ps(params, "lang").unwrap_or("").to_string();
+    Ok(RParams { script: script.to_string(), inputs, args, timeout_s, lang })
 }
 
 /// Stages a `gp.runR` run's inputs from the map (read only) and queues it. Returns the run when
@@ -152,7 +154,7 @@ pub fn r_start(s: &mut Session, params: &Value) -> Result<Option<RRunStart>, Str
     }
     s.next_pending = s.next_pending.wrapping_add(1);
     let id = s.next_pending;
-    let input = rustgis_r::RExecutionInput { script: p.script, layers, args: p.args, timeout_s: p.timeout_s, lang: s.lang.clone() };
+    let input = rustgis_r::RExecutionInput { script: p.script, layers, args: p.args, timeout_s: p.timeout_s, lang: p.lang };
     let start = if s.r_running.is_none() {
         s.r_running = Some(id);
         Some(RRunStart { id, input: input.clone() })

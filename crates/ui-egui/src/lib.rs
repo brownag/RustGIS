@@ -1349,6 +1349,8 @@ impl RustGisApp {
         // The Rscript path, read before `params` is handed on (empty clears the choice).
         #[cfg(all(feature = "r", not(target_arch = "wasm32")))]
         let rscript = (id == "gp.setRscript").then(|| params.get("path").and_then(Value::as_str).unwrap_or("").trim().to_string());
+        // The engine's programs (R) get the language the interface is drawn in, unless the caller named one.
+        let params = if id == "gp.runR" { with_lang(params, self.shown_lang.code()) } else { params };
         let r = if id.starts_with("ui.") { self.run_ui(id, &params) } else { self.session.run(id, &params) };
         if let Err(e) = &r {
             log::info!("{id}: {e}");
@@ -3237,10 +3239,6 @@ impl RustGisApp {
                 ctx.request_repaint();
             }
         }
-        // The engine's programs (R) get the language the interface is drawn in.
-        if self.session.lang != self.shown_lang.code() {
-            self.session.lang = self.shown_lang.code().to_string();
-        }
         if self.ui.dark_follows_system
             && let Some(system) = ctx.system_theme()
         {
@@ -3567,5 +3565,32 @@ mod vertex_undo_tests {
         app.map.vertex = Some((id, row, VertexId::new(0, 0, 1)));
         app.run("edit.redo", Value::Null).unwrap();
         assert_eq!(app.map.vertex, None, "redo");
+    }
+}
+
+/// Adds the interface language as `lang` to `gp.runR` params that don't name one. Other params
+/// pass through unchanged, so the engine still reports a bad value.
+fn with_lang(params: Value, lang: &str) -> Value {
+    match params {
+        Value::Null => json!({ "lang": lang }),
+        Value::Object(mut map) => {
+            map.entry("lang").or_insert_with(|| Value::String(lang.to_string()));
+            Value::Object(map)
+        }
+        other => other,
+    }
+}
+
+#[cfg(test)]
+mod lang_tests {
+    use super::with_lang;
+    use serde_json::{Value, json};
+
+    #[test]
+    fn with_lang_fills_in_a_missing_language_only() {
+        assert_eq!(with_lang(Value::Null, "de"), json!({"lang": "de"}));
+        assert_eq!(with_lang(json!({"script": "1"}), "de"), json!({"script": "1", "lang": "de"}));
+        assert_eq!(with_lang(json!({"lang": "fr"}), "de"), json!({"lang": "fr"}));
+        assert_eq!(with_lang(json!("junk"), "de"), json!("junk"));
     }
 }
