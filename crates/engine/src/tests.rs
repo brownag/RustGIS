@@ -1281,6 +1281,21 @@ fn r_runs_can_finish_asynchronously() {
 
 #[cfg(feature = "r")]
 #[test]
+fn a_failed_r_run_keeps_its_typed_notice() {
+    use crate::cmd::gp::{r_complete, r_start};
+    use rustgis_r::{RNotice, RRunnerError};
+    let mut s = with_raster();
+    let run = r_start(&mut s, &json!({"script": "1"})).unwrap().unwrap();
+    r_complete(&mut s, run.id, Err(RRunnerError::Notice(RNotice::NeedSf))).unwrap();
+    assert!(s.run("gp.finish", &json!({"id": run.id})).is_err());
+    assert_eq!(s.notices.last().and_then(|n| n.r_notice), Some(RNotice::NeedSf));
+    // A later failure that is not an R run carries no notice of its own.
+    assert!(s.run("gp.finish", &json!({"id": run.id})).is_err());
+    assert_eq!(s.notices.last().and_then(|n| n.r_notice), None);
+}
+
+#[cfg(feature = "r")]
+#[test]
 fn r_runs_queue_one_at_a_time() {
     use crate::cmd::gp::{r_complete, r_start};
     // The second run waits; when the first completes, the second is handed back to launch.

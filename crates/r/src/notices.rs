@@ -1,5 +1,6 @@
-//! The English notices the desktop translates. Keep them in step with `bootstrap.R`, which holds
-//! the three R-side texts (with `"` written as `\"`).
+//! The notices the desktop translates. Each has a stable code (what bootstrap.R and the manifest
+//! carry) and an English text (kept in step with `bootstrap.R`, which holds the R-side texts with
+//! `"` written as `\"`).
 
 /// The `Rscript` program was not found.
 pub const NOT_FOUND: &str = "Rscript was not found";
@@ -13,8 +14,44 @@ pub const NEED_SF: &str = "this script needs geometry; install the R package 'sf
 /// The script needs `terra` for rasters.
 pub const NEED_TERRA: &str = "this script needs rasters; install the R package 'terra': install.packages(\"terra\")";
 
-/// Every notice above.
-pub const ALL: [&str; 4] = [NOT_FOUND, NEED_JSONLITE, NEED_SF, NEED_TERRA];
+/// A notice the R runner can report, typed so the front end translates it without matching text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RNotice {
+    NotFound,
+    NeedJsonlite,
+    NeedSf,
+    NeedTerra,
+}
+
+/// Every notice.
+pub const ALL_NOTICES: [RNotice; 4] = [RNotice::NotFound, RNotice::NeedJsonlite, RNotice::NeedSf, RNotice::NeedTerra];
+
+impl RNotice {
+    /// The stable code (bootstrap.R writes it into the manifest).
+    pub fn code(self) -> &'static str {
+        match self {
+            RNotice::NotFound => "not_found",
+            RNotice::NeedJsonlite => "need_jsonlite",
+            RNotice::NeedSf => "need_sf",
+            RNotice::NeedTerra => "need_terra",
+        }
+    }
+
+    /// The English text.
+    pub fn english(self) -> &'static str {
+        match self {
+            RNotice::NotFound => NOT_FOUND,
+            RNotice::NeedJsonlite => NEED_JSONLITE,
+            RNotice::NeedSf => NEED_SF,
+            RNotice::NeedTerra => NEED_TERRA,
+        }
+    }
+
+    /// The notice with this code, if any.
+    pub fn from_code(code: &str) -> Option<Self> {
+        ALL_NOTICES.into_iter().find(|n| n.code() == code)
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -23,17 +60,27 @@ mod tests {
     use crate::harness::BOOTSTRAP_R;
 
     #[test]
-    fn r_side_notices_match_bootstrap() {
-        for text in [NEED_JSONLITE, NEED_SF, NEED_TERRA] {
-            let escaped = text.replace('"', "\\\"");
-            assert!(BOOTSTRAP_R.contains(&escaped), "bootstrap.R lacks: {text}");
+    fn codes_round_trip() {
+        for n in ALL_NOTICES {
+            assert_eq!(RNotice::from_code(n.code()), Some(n));
         }
-        let escaped_sf = NEED_SF.replace('"', "\\\"");
-        assert!(BOOTSTRAP_R.matches(&escaped_sf).count() >= 2);
+        assert_eq!(RNotice::from_code("bogus"), None);
+        assert_eq!(RNotice::from_code(""), None);
+    }
+
+    #[test]
+    fn r_side_codes_and_notices_match_bootstrap() {
+        // not_found is raised by the runner, not by the R script.
+        for n in [RNotice::NeedJsonlite, RNotice::NeedSf, RNotice::NeedTerra] {
+            assert!(BOOTSTRAP_R.contains(n.code()), "bootstrap.R lacks code {}", n.code());
+            let escaped = n.english().replace('"', "\\\"");
+            assert!(BOOTSTRAP_R.contains(&escaped), "bootstrap.R lacks: {}", n.english());
+        }
     }
 
     #[test]
     fn not_found_error_uses_the_constant() {
         assert_eq!(RRunnerError::NotFound.to_string(), NOT_FOUND);
+        assert_eq!(RRunnerError::Notice(RNotice::NeedSf).to_string(), NEED_SF);
     }
 }

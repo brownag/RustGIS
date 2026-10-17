@@ -2,6 +2,8 @@
 //! produced, and converts it to a tool result. The file and everything in it are hostile input,
 //! so every failure is a plain-English message, and a panic in the conversion is caught too.
 
+use crate::RNotice;
+use crate::RRunnerError;
 use crate::wire::{MAX_FILE_BYTES, MAX_FILES, MAX_MANIFEST_BYTES, MAX_MESSAGES, RExecutionOutput, RFile};
 use rustgis_analysis::{Output, OutputLayer, ToolResult};
 use rustgis_data::source;
@@ -18,14 +20,14 @@ const MAX_MESSAGE_BYTES: usize = 4 << 10;
 
 /// Converts a script's output to a tool result. `rows_of` gives the host rows an input layer was
 /// read from, by name, or `None` when there is no such input. Any failure is returned as its message.
-pub fn convert_output(out: &RExecutionOutput, rows_of: &dyn Fn(&str) -> Option<Vec<usize>>) -> Result<ToolResult, String> {
+pub fn convert_output(out: &RExecutionOutput, rows_of: &dyn Fn(&str) -> Option<Vec<usize>>) -> Result<ToolResult, RRunnerError> {
     match catch_unwind(AssertUnwindSafe(|| convert_manifest(out, rows_of))) {
         Ok(result) => result,
-        Err(_) => Err("the R result could not be read".into()),
+        Err(_) => Err(RRunnerError::Failed("the R result could not be read".into())),
     }
 }
 
-fn convert_manifest(out: &RExecutionOutput, rows_of: &dyn Fn(&str) -> Option<Vec<usize>>) -> Result<ToolResult, String> {
+fn convert_manifest(out: &RExecutionOutput, rows_of: &dyn Fn(&str) -> Option<Vec<usize>>) -> Result<ToolResult, RRunnerError> {
     let file = find_file(&out.files, MANIFEST_PATH).ok_or("the R script did not finish: no result file was written")?;
     if file.data.len() > MAX_MANIFEST_BYTES {
         return Err("the R result file is too large".into());
@@ -36,8 +38,12 @@ fn convert_manifest(out: &RExecutionOutput, rows_of: &dyn Fn(&str) -> Option<Vec
     }
     let ok = manifest.get("ok").and_then(Value::as_bool).ok_or("the R result file has no ok flag")?;
     if !ok {
+        // A notice the script raised (a missing package) is typed; anything else is its message.
+        if let Some(notice) = manifest.get("notice").and_then(Value::as_str).and_then(RNotice::from_code) {
+            return Err(RRunnerError::Notice(notice));
+        }
         let error = manifest.get("error").and_then(Value::as_str).filter(|e| !e.is_empty()).unwrap_or("the R script failed");
-        return Err(error.to_string());
+        return Err(RRunnerError::Failed(error.to_string()));
     }
 
     let layers: &[Value] = match manifest.get("layers") {
@@ -55,7 +61,7 @@ fn convert_manifest(out: &RExecutionOutput, rows_of: &dyn Fn(&str) -> Option<Vec
         Some(sel) => convert_selection(sel, rows_of)?,
         None => {
             if layers.len() > MAX_FILES {
-                return Err(format!("the R script wrote more than {MAX_FILES} layers"));
+                return Err(format!("the R script wrote more than {MAX_FILES} layers").into());
             }
             let mut converted = Vec::with_capacity(layers.len());
             for entry in layers {

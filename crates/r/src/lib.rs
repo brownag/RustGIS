@@ -4,7 +4,6 @@
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
-pub mod harness;
 pub mod job;
 pub mod manifest;
 pub mod notices;
@@ -34,6 +33,12 @@ pub use discover::{choose, find, ready, version_of};
 #[cfg(not(target_arch = "wasm32"))]
 pub use native::RscriptRunner;
 
+/// The R harness: the bootstrap script that runs each job, embedded as `BOOTSTRAP_R`.
+pub mod harness {
+    pub const BOOTSTRAP_R: &str = include_str!("bootstrap.R");
+}
+
+pub use notices::RNotice;
 pub use wire::{
     DEFAULT_TIMEOUT_S, MAX_FILE_BYTES, MAX_FILES, MAX_MANIFEST_BYTES, MAX_MESSAGES, MAX_SCRIPT_BYTES, RExecutionInput, RExecutionOutput,
     RFile, RLayerInput, RLayerKind, clamp_timeout, clean_lang,
@@ -63,10 +68,24 @@ pub enum ExecutionUpdate {
 pub enum RRunnerError {
     #[error("{}", crate::notices::NOT_FOUND)]
     NotFound,
+    #[error("{}", .0.english())]
+    Notice(RNotice),
     #[error("not supported here: {0}")]
     Unsupported(String),
     #[error("R script failed: {0}")]
     Failed(String),
+}
+
+impl From<String> for RRunnerError {
+    fn from(message: String) -> Self {
+        RRunnerError::Failed(message)
+    }
+}
+
+impl From<&str> for RRunnerError {
+    fn from(message: &str) -> Self {
+        RRunnerError::Failed(message.to_string())
+    }
 }
 
 /// Runs a script. `progress` may be called any number of times while the script runs.

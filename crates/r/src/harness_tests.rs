@@ -1,11 +1,12 @@
 // End-to-end tests: the real bootstrap.R under Rscript. Each test skips when Rscript, jsonlite
 // or sf is missing.
 
+use crate::RNotice;
+use crate::RRunnerError;
 use crate::RScriptRunner;
 use crate::RscriptRunner;
 use crate::job::build_job_files;
 use crate::manifest::convert_output;
-use crate::notices::NEED_JSONLITE;
 use crate::stage::stage_dataset;
 use crate::wire::{RExecutionInput, RExecutionOutput, RFile};
 use rustgis_analysis::{Output, OutputLayer, ToolResult};
@@ -84,7 +85,7 @@ fn five_row_table() -> Dataset {
 /// Runs the script with the native runner and converts its output.
 fn run_case(input: &RExecutionInput) -> Result<ToolResult, String> {
     let out = RscriptRunner.run(input, &|_| {}).map_err(|e| e.to_string())?;
-    convert_output(&out, &cities_rows)
+    convert_output(&out, &cities_rows).map_err(|e| e.to_string())
 }
 
 /// The job folders this process has left in the temp dir.
@@ -303,7 +304,7 @@ fn harness_without_jsonlite_writes_failure_manifest() -> TestResult {
     let Err(err) = convert_output(&out, &|_| None) else {
         return Err("expected the failure manifest to be an error".into());
     };
-    assert_eq!(err, NEED_JSONLITE);
+    assert_eq!(err, RRunnerError::Notice(RNotice::NeedJsonlite));
     Ok(())
 }
 

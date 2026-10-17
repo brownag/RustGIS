@@ -1,3 +1,4 @@
+use crate::RRunnerError;
 use crate::manifest::{check_coords, convert_output};
 use crate::wire::{MAX_MESSAGES, RExecutionOutput, RFile};
 use rustgis_analysis::{Output, OutputLayer};
@@ -60,11 +61,19 @@ fn standard_manifest() -> Value {
     })
 }
 
+/// The message of a failure (a script's own error text, or the runner's text for a notice).
+fn text(error: RRunnerError) -> String {
+    match error {
+        RRunnerError::Failed(message) => message,
+        other => other.to_string(),
+    }
+}
+
 /// The error message of a conversion that must fail.
 fn failure(out: &RExecutionOutput) -> Result<String, Box<dyn std::error::Error>> {
     match convert_output(out, &cities_rows) {
         Ok(_) => Err("expected the conversion to fail".into()),
-        Err(message) => Ok(message),
+        Err(error) => Ok(text(error)),
     }
 }
 
@@ -121,10 +130,10 @@ fn selection_rows_map_through_the_rows_read() -> TestResult {
     assert_eq!(rows, vec![2]);
     // Row 3 is past the two rows read.
     let past = json!({"version": 1, "ok": true, "selection": {"layer": "Cities", "rows": [3]}});
-    let Err(message) = convert_output(&bare(&past), &rows_of) else {
+    let Err(error) = convert_output(&bare(&past), &rows_of) else {
         return Err("expected the conversion to fail".into());
     };
-    assert_eq!(message, "selection row 3 is outside the 2 rows read from layer 'Cities'");
+    assert_eq!(text(error), "selection row 3 is outside the 2 rows read from layer 'Cities'");
     // Row 0 is not a row.
     let zero = json!({"version": 1, "ok": true, "selection": {"layer": "Cities", "rows": [0]}});
     assert!(convert_output(&bare(&zero), &rows_of).is_err());
@@ -137,6 +146,21 @@ fn failed_script_returns_its_error() -> TestResult {
     assert_eq!(failure(&bare(&manifest))?, "boom");
     let generic = json!({"version": 1, "ok": false, "error": null});
     assert_eq!(failure(&bare(&generic))?, "the R script failed");
+    Ok(())
+}
+
+#[test]
+fn a_typed_notice_from_the_script_is_kept() -> TestResult {
+    let manifest = json!({"version": 1, "ok": false, "error": "english", "notice": "need_sf"});
+    let Err(error) = convert_output(&bare(&manifest), &cities_rows) else {
+        return Err("expected the conversion to fail".into());
+    };
+    assert_eq!(error, RRunnerError::Notice(crate::RNotice::NeedSf));
+    // An unknown or non-text code is not a notice: the message is used instead.
+    let unknown = json!({"version": 1, "ok": false, "error": "boom", "notice": "bogus"});
+    assert_eq!(failure(&bare(&unknown))?, "boom");
+    let numeric = json!({"version": 1, "ok": false, "error": "boom", "notice": 3});
+    assert_eq!(failure(&bare(&numeric))?, "boom");
     Ok(())
 }
 

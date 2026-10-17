@@ -418,7 +418,7 @@ pub fn status_bar(app: &mut RustGisApp, ui: &mut Ui) {
                     // Cut to the room left (the whole notice on hover), so a long one doesn't run
                     // over the selection count and coordinates.
                     if let Some(n) = app.session.notices.last() {
-                        let text = crate::rnotices::translate(&n.text).unwrap_or_else(|| n.text.clone());
+                        let text = crate::rnotices::text_of(n);
                         ui.add(
                             egui::Label::new(egui::RichText::new(&text).size(11.5).color(if n.error { t.red } else { t.text_dim }))
                                 .truncate(),
@@ -1114,7 +1114,7 @@ pub fn notices(app: &mut RustGisApp, ctx: &egui::Context) {
     if total > app.map.notices_seen {
         for n in app.session.notices.iter().skip(app.map.notices_seen) {
             app.map.toasts_made += 1;
-            let text = crate::rnotices::translate(&n.text).unwrap_or_else(|| n.text.clone());
+            let text = crate::rnotices::text_of(n);
             app.map.toasts.push(Toast { text, error: n.error, at: now, id: app.map.toasts_made });
         }
         app.map.notices_seen = total;

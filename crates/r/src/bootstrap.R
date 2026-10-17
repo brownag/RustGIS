@@ -27,9 +27,13 @@
 .rgis_state$args <- list()
 .rgis_state$inputs <- list()
 
-# Stops with a plain install message when a package is missing.
-.rgis_need <- function(pkg, msg) {
-  if (!requireNamespace(pkg, quietly = TRUE)) stop(msg, call. = FALSE)
+# Stops with a plain install message when a package is missing. The condition carries a notice
+# code, which the manifest passes to the desktop (which translates it).
+.rgis_need <- function(pkg, code, msg) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    stop(structure(class = c("rgis_notice", "error", "condition"),
+                   list(message = msg, call = NULL, code = code)))
+  }
   invisible(TRUE)
 }
 
@@ -78,7 +82,7 @@
 }
 
 # Builds the manifest list. A script error, or a shape the host cannot convert, gives ok:false.
-.rgis_manifest <- function(error) {
+.rgis_manifest <- function(error, notice = NULL) {
   layers <- .rgis_state$layers
   sel <- .rgis_chosen()
   if (is.null(error)) {
@@ -89,7 +93,7 @@
     }
   }
   if (!is.null(error)) {
-    return(list(version = 1L, ok = FALSE, error = error, layers = list(), selection = NULL,
+    return(list(version = 1L, ok = FALSE, error = error, notice = notice, layers = list(), selection = NULL,
                 messages = .rgis_state$messages))
   }
   selection <- NULL
@@ -102,6 +106,7 @@
 
 # Runs the user script in a child environment and writes out/manifest.json.
 .rgis_run <- function() {
+  notice <- NULL
   error <- tryCatch({
     withCallingHandlers(
       source("script.R", local = new.env(parent = globalenv())),
@@ -111,10 +116,11 @@
       })
     NULL
   }, error = function(e) {
+    notice <<- if (inherits(e, "rgis_notice")) e[["code"]] else NULL
     msg <- conditionMessage(e)
     if (nzchar(msg)) msg else "the script failed"
   })
-  manifest <- .rgis_manifest(error)
+  manifest <- .rgis_manifest(error, notice)
   jsonlite::write_json(manifest, file.path("out", "manifest.json"), auto_unbox = TRUE,
                        null = "null", na = "null")
   invisible(manifest)
@@ -163,7 +169,7 @@ rgis_read_layer <- function(name) {
   file <- inp[["file"]]
   kind <- inp[["kind"]]
   if (identical(kind, "vector")) {
-    .rgis_need("sf", "this script needs geometry; install the R package 'sf': install.packages(\"sf\")")
+    .rgis_need("sf", "need_sf", "this script needs geometry; install the R package 'sf': install.packages(\"sf\")")
     x <- sf::st_read(file, quiet = TRUE)
     sel <- unlist(inp[["selection"]])
     if (length(sel)) x <- x[sel[sel <= nrow(x)], ]
@@ -176,7 +182,7 @@ rgis_read_layer <- function(name) {
     return(x)
   }
   if (identical(kind, "raster")) {
-    .rgis_need("terra", "this script needs rasters; install the R package 'terra': install.packages(\"terra\")")
+    .rgis_need("terra", "need_terra", "this script needs rasters; install the R package 'terra': install.packages(\"terra\")")
     return(terra::rast(file))
   }
   stop(sprintf("input layer '%s' has an unknown kind", name), call. = FALSE)
@@ -185,7 +191,7 @@ rgis_read_layer <- function(name) {
 # Writes an sf layer to out/ as EPSG:4326. FlatGeobuf is used when available, else GeoJSON.
 rgis_write_layer <- function(x, name) {
   .rgis_check_name(name)
-  .rgis_need("sf", "this script needs geometry; install the R package 'sf': install.packages(\"sf\")")
+  .rgis_need("sf", "need_sf", "this script needs geometry; install the R package 'sf': install.packages(\"sf\")")
   if (!inherits(x, "sf")) {
     stop("rgis_write_layer needs an sf object; use rgis_write_table for a table", call. = FALSE)
   }
@@ -233,7 +239,7 @@ rgis_write_table <- function(df, name) {
     msg <- gsub("\"", "\\\"", msg, fixed = TRUE)
     dir.create("out", showWarnings = FALSE, recursive = TRUE)
     writeLines(paste0("{\"version\":1,\"ok\":false,\"error\":\"", msg,
-                      "\",\"layers\":[],\"selection\":null,\"messages\":[]}"),
+                      "\",\"notice\":\"need_jsonlite\",\"layers\":[],\"selection\":null,\"messages\":[]}"),
                file.path("out", "manifest.json"))
     return(invisible(NULL))
   }

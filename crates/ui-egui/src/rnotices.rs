@@ -1,53 +1,61 @@
-//! Translated notices for the R runner's English errors.
+//! Translated notices for the R runner's typed notices.
 
-/// `text` translated, when it is one of the R notices (with or without the prefix). `None` for any
-/// other text.
+use rustgis_engine::Notice;
+
+/// The text to show for a notice: the translated R notice when it has one, else its own text.
 #[cfg(feature = "r")]
-pub fn translate(text: &str) -> Option<String> {
-    use rustgis_engine::cmd::gp::R_FAILURE_PREFIX;
-    use rustgis_engine::r::notices::{NEED_JSONLITE, NEED_SF, NEED_TERRA, NOT_FOUND};
-
-    let text = text.strip_prefix(R_FAILURE_PREFIX).unwrap_or(text);
-    let translated = match text {
-        NOT_FOUND => tl!(NOT_FOUND),
-        NEED_JSONLITE => tl!(NEED_JSONLITE),
-        NEED_SF => tl!(NEED_SF),
-        NEED_TERRA => tl!(NEED_TERRA),
-        _ => return None,
-    };
-    Some(translated.to_string())
+pub fn text_of(n: &Notice) -> String {
+    match n.r_notice {
+        Some(r) => text(r),
+        None => n.text.clone(),
+    }
 }
 
-/// Without R there are no R notices to translate.
+/// Without R there are no R notices: a notice's own text.
 #[cfg(not(feature = "r"))]
-pub fn translate(_text: &str) -> Option<String> {
-    None
+pub fn text_of(n: &Notice) -> String {
+    n.text.clone()
+}
+
+/// A typed R notice, translated.
+#[cfg(feature = "r")]
+fn text(n: rustgis_engine::r::RNotice) -> String {
+    use rustgis_engine::r::RNotice;
+    use rustgis_engine::r::notices::{NEED_JSONLITE, NEED_SF, NEED_TERRA, NOT_FOUND};
+    let translated = match n {
+        RNotice::NotFound => tl!(NOT_FOUND),
+        RNotice::NeedJsonlite => tl!(NEED_JSONLITE),
+        RNotice::NeedSf => tl!(NEED_SF),
+        RNotice::NeedTerra => tl!(NEED_TERRA),
+    };
+    translated.to_string()
 }
 
 #[cfg(all(test, feature = "r"))]
 mod tests {
     use super::*;
     use crate::i18n::{Lang, tr};
-    use rustgis_engine::cmd::gp::R_FAILURE_PREFIX;
-    use rustgis_engine::r::notices::ALL;
+    use rustgis_engine::r::notices::ALL_NOTICES;
+
+    fn notice(text: &str, r: Option<rustgis_engine::r::RNotice>) -> Notice {
+        Notice { text: text.into(), error: true, r_notice: r }
+    }
 
     #[test]
-    fn each_notice_maps_with_and_without_the_prefix() {
-        for text in ALL {
-            assert!(translate(text).is_some(), "{text}");
-            assert_eq!(translate(&format!("{R_FAILURE_PREFIX}{text}")), translate(text), "{text}");
+    fn each_typed_notice_is_translated_from_its_english() {
+        for n in ALL_NOTICES {
+            assert_eq!(text_of(&notice(n.english(), Some(n))), text(n), "{}", n.code());
         }
     }
 
     #[test]
-    fn other_text_is_not_translated() {
-        assert_eq!(translate("R exited with 1: Execution halted"), None);
-        assert_eq!(translate(&format!("{R_FAILURE_PREFIX}something else")), None);
-        assert_eq!(translate(""), None);
+    fn untyped_text_is_kept() {
+        assert_eq!(text_of(&notice("R exited with 1: Execution halted", None)), "R exited with 1: Execution halted");
+        assert_eq!(text_of(&notice("", None)), "");
     }
 
     #[test]
     fn english_notice_matches_the_catalog_key() {
-        assert_eq!(translate("Rscript was not found").as_deref(), Some(tr(Lang::EN, "Rscript was not found")));
+        assert_eq!(text(rustgis_engine::r::RNotice::NotFound), tr(Lang::EN, "Rscript was not found"));
     }
 }

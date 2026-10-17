@@ -166,10 +166,26 @@ pub fn r_start(s: &mut Session, params: &Value) -> Result<Option<RRunStart>, Str
     Ok(start)
 }
 
+/// The text of a failed R run and its typed notice, if it has one.
+#[cfg(feature = "r")]
+fn r_failure(e: rustgis_r::RRunnerError) -> (String, Option<rustgis_r::RNotice>) {
+    use rustgis_r::{RNotice, RRunnerError};
+    match e {
+        RRunnerError::Notice(n) => (n.english().into(), Some(n)),
+        RRunnerError::NotFound => (RNotice::NotFound.english().into(), Some(RNotice::NotFound)),
+        RRunnerError::Unsupported(m) => (format!("not supported here: {m}"), None),
+        RRunnerError::Failed(m) => (m, None),
+    }
+}
+
 /// Finishes an R run from [`r_start`]: its output becomes a result that `gp.finish` applies. Then
 /// it hands back the next queued R run for the host to launch, if none is under way.
 #[cfg(feature = "r")]
-pub fn r_complete(s: &mut Session, id: u64, ran: Result<rustgis_r::RExecutionOutput, String>) -> Result<Option<RRunStart>, String> {
+pub fn r_complete(
+    s: &mut Session,
+    id: u64,
+    ran: Result<rustgis_r::RExecutionOutput, rustgis_r::RRunnerError>,
+) -> Result<Option<RRunStart>, String> {
     let i = s.started.iter().position(|(n, j, ..)| *n == id && matches!(j, ExternalJob::R(_))).ok_or(DROPPED_R_RUN)?;
     let (_, job, params, t0) = s.started.remove(i);
     #[cfg(feature = "geolibre")]
@@ -189,7 +205,19 @@ pub fn r_complete(s: &mut Session, id: u64, ran: Result<rustgis_r::RExecutionOut
         exact.or_else(|| rows.iter().find(|(n, _)| n.eq_ignore_ascii_case(name))).map(|(_, r)| r.clone())
     };
     // convert_output catches panics in the reader itself, so no guard is needed here.
-    let result = ran.map_err(|e| format!("{R_FAILURE_PREFIX}{e}")).and_then(|out| rustgis_r::manifest::convert_output(&out, &rows_of));
+    let (result, r_notice) = match ran {
+        Err(e) => {
+            let (text, notice) = r_failure(e);
+            (Err(format!("{R_FAILURE_PREFIX}{text}")), notice)
+        }
+        Ok(out) => match rustgis_r::manifest::convert_output(&out, &rows_of) {
+            Ok(result) => (Ok(result), None),
+            Err(e) => {
+                let (text, notice) = r_failure(e);
+                (Err(text), notice)
+            }
+        },
+    };
     s.pending.push(crate::PendingRun {
         id,
         tool: "R script".into(),
@@ -199,6 +227,7 @@ pub fn r_complete(s: &mut Session, id: u64, ran: Result<rustgis_r::RExecutionOut
         result,
         started: t0,
         millis: now_ms().saturating_sub(t0),
+        r_notice,
     });
     if s.pending.len() > MAX_ASYNC_RUNS {
         s.pending.remove(0);
@@ -240,11 +269,7 @@ fn run_r(s: &mut Session, p: &Value) -> CmdResult {
         let Some(run) = r_start(s, p)? else {
             return Err("internal: an R run was queued".into());
         };
-        let ran = rustgis_r::default_runner().run(&run.input, &|_| {}).map_err(|e| match e {
-            // The runner's own text, without its "R script failed:" prefix (r_complete adds one).
-            rustgis_r::RRunnerError::Failed(m) => m,
-            other => other.to_string(),
-        });
+        let ran = rustgis_r::default_runner().run(&run.input, &|_| {});
         if r_complete(s, run.id, ran)?.is_some() {
             return Err("internal: an R run was queued".into());
         }
@@ -511,6 +536,8 @@ pub fn external_complete(s: &mut Session, id: u64, ran: ExternalOutput) -> Resul
             result,
             started: t0,
             millis: now_ms().saturating_sub(t0),
+            #[cfg(feature = "r")]
+            r_notice: None,
         });
         if s.pending.len() > MAX_ASYNC_RUNS {
             s.pending.remove(0);
@@ -627,6 +654,8 @@ pub fn plugin_complete(s: &mut Session, id: u64, result: Result<rustgis_analysis
         result,
         started: run.t0,
         millis: now_ms().saturating_sub(run.t0),
+        #[cfg(feature = "r")]
+        r_notice: None,
     });
     if s.pending.len() > MAX_ASYNC_RUNS {
         s.pending.remove(0);
@@ -726,6 +755,10 @@ fn finish(s: &mut Session, p: &Value) -> CmdResult {
     let id = p.get("id").and_then(Value::as_u64).ok_or("id is required")?;
     let i = s.pending.iter().position(|r| r.id == id).ok_or("no finished run with that id")?;
     let r = s.pending.remove(i);
+    #[cfg(feature = "r")]
+    {
+        s.r_notice = r.r_notice;
+    }
     apply(s, Ran { name: r.tool, id: r.tool_id, command: None, started: r.started }, r.params, r.result, r.millis)
 }
 

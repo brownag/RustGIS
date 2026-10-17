@@ -347,6 +347,9 @@ pub struct TopologyIssue {
 pub struct Notice {
     pub text: String,
     pub error: bool,
+    /// The typed R notice behind `text`, when an R run raised one (the front end translates it).
+    #[cfg(feature = "r")]
+    pub r_notice: Option<rustgis_r::RNotice>,
 }
 
 const UNDO_LIMIT: usize = 40;
@@ -521,6 +524,10 @@ pub struct Session {
     /// The R run the host is launching (its id), or `None` when no R run is under way.
     #[cfg(feature = "r")]
     pub(crate) r_running: Option<u64>,
+    /// The typed notice of the R run that failed in the command under way; taken by the command's
+    /// notice (see `guarded`).
+    #[cfg(feature = "r")]
+    pub(crate) r_notice: Option<rustgis_r::RNotice>,
     /// Data downloads of this project under way (Add Data › From URL), by id.
     downloading: Vec<u64>,
     /// Downloads that landed, waiting for `layer.addDownload`.
@@ -561,6 +568,9 @@ pub(crate) struct PendingRun {
     /// When the run started, in milliseconds since 1970.
     pub started: u64,
     pub millis: u64,
+    /// The typed notice of a failed R run.
+    #[cfg(feature = "r")]
+    pub(crate) r_notice: Option<rustgis_r::RNotice>,
 }
 
 /// Empties the windows of a project's streamed layers (they are read again from their sources).
@@ -667,6 +677,8 @@ impl Session {
             plugin_panels: std::collections::BTreeMap::new(),
             #[cfg(feature = "r")]
             r_running: None,
+            #[cfg(feature = "r")]
+            r_notice: None,
             downloading: Vec::new(),
             downloaded: Vec::new(),
             url_requests: Vec::new(),
@@ -940,10 +952,17 @@ impl Session {
             self.url_requests.truncate(requests);
         }
         let quiet = std::mem::take(&mut self.quiet_failure);
+        // The typed R notice of a failed run (a fresh command starts with none).
+        #[cfg(feature = "r")]
+        let r_notice = self.r_notice.take();
         if let Err(e) = &res
             && !quiet
         {
             self.notify(e.clone(), true);
+            #[cfg(feature = "r")]
+            if let (Some(n), Some(last)) = (r_notice, self.notices.last_mut()) {
+                last.r_notice = Some(n);
+            }
         }
         // The command, and those it ran, are done: a replaced project stays replaced.
         if self.depth == 0 {
@@ -1078,7 +1097,12 @@ impl Session {
     }
 
     pub fn notify(&mut self, text: impl Into<String>, error: bool) {
-        self.notices.push(Notice { text: text.into(), error });
+        self.notices.push(Notice {
+            text: text.into(),
+            error,
+            #[cfg(feature = "r")]
+            r_notice: None,
+        });
         self.notices_given += 1;
         if self.notices.len() > 200 {
             self.notices.remove(0);
