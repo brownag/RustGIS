@@ -12,6 +12,8 @@ pub mod effects;
 pub mod embeddings;
 pub mod geocode;
 pub mod gp;
+#[cfg(feature = "r")]
+pub(crate) mod gp_r;
 pub mod graphics;
 pub mod group;
 pub mod history;
@@ -87,6 +89,8 @@ pub fn all() -> Vec<CommandSpec> {
     v.extend(workspace::commands());
     v.extend(gp::commands());
     v.extend(history::commands());
+    #[cfg(feature = "r")]
+    v.extend(gp_r::commands());
     v.extend(share::commands());
     v.extend(sql::commands());
     v.extend(plugins::commands());
