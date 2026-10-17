@@ -1092,6 +1092,9 @@ fn hostile_params_never_panic() {
         json!({"transform": "spline", "crs": "EPSG:999999999", "pointsCrs": [7], "resampling": 1, "cellSize": -1e308, "path": 5, "points": [[0, 0, 1, 1]]}),
         json!({"transform": "affine", "crs": 32613, "pointsCrs": 4326, "cellSize": 1e-300, "path": "/nonexistent/x.tif", "points": [[0, 0, 1, 1], [1, 0, 2, 1], [0, 1, 1, 2]]}),
         json!({"points": [[0, 0, f64::MAX, f64::MAX], [1, 0, -f64::MAX, f64::MAX], [0, 1, f64::MAX, -f64::MAX]], "compare": true}),
+        // R junk: each is rejected by `r_params` before any R process starts.
+        json!({"script": 7, "timeout_s": -1, "lang": "../../"}),
+        json!({"script": "x", "inputs": [null, 1e30]}),
     ];
     let ids: Vec<&str> = Session::new(Project::default()).registry.commands.iter().map(|c| c.id).collect();
     let streamed = grid_fgb("hostile", 20);
@@ -1331,6 +1334,54 @@ fn r_run_failure_leaves_project_untouched() {
     assert_eq!(s.run("gp.finish", &json!({"id": run.id})).unwrap_err(), "R script: trap");
     assert_eq!(s.map().layers.len(), layers, "no layer added");
     assert_eq!(s.project.tables.len(), tables, "no table added");
+}
+
+#[cfg(feature = "r")]
+#[test]
+fn gp_run_r_params_reject_or_clamp_junk() {
+    use crate::cmd::gp::r_params;
+    assert_eq!(r_params(&json!({"script": "x", "timeout_s": -1})).ok().and_then(|p| p.timeout_s), Some(1), "clamped to 1 s");
+    assert_eq!(r_params(&json!({"script": 7})).err().as_deref(), Some("the R script is required"));
+    assert!(r_params(&json!({"script": "x", "inputs": [null, 1e30]})).err().is_some_and(|e| e.contains("inputs")));
+    let lang = r_params(&json!({"script": "x", "lang": "../../"})).ok().map(|p| p.lang).unwrap_or_default();
+    assert_eq!(rustgis_r::clean_lang(&lang), "en", "a path-like language is not passed on");
+}
+
+#[cfg(feature = "r")]
+#[test]
+fn gp_run_r_rejects_junk_before_any_run() {
+    let mut s = world();
+    for params in [
+        json!({"script": 7}),
+        json!({"script": "x", "inputs": [null, 1e30]}),
+        json!({"script": "x", "timeout_s": -1, "args": 3}),
+        json!({"script": "1", "inputs": 5}),
+    ] {
+        assert!(s.run("gp.runR", &params).is_err(), "{params}");
+        assert!(s.r_running.is_none(), "{params}");
+        assert!(s.started.is_empty(), "nothing started for {params}");
+    }
+}
+
+/// No Rscript is a typed `NotFound` from the runner: `gp.finish` returns `Err` with the notice,
+/// and the project is untouched. Never calls `choose`, so no process-wide state changes.
+#[cfg(feature = "r")]
+#[test]
+fn gp_run_r_without_rscript_is_an_error_not_a_panic() {
+    use crate::cmd::gp::{R_FAILURE_PREFIX, r_complete, r_start};
+    use rustgis_r::{RNotice, RRunnerError};
+    let mut s = with_raster();
+    let layers = s.map().layers.len();
+    let tables = s.project.tables.len();
+    let run = r_start(&mut s, &json!({"script": "1"})).unwrap().unwrap();
+    r_complete(&mut s, run.id, Err(RRunnerError::NotFound)).unwrap();
+    let e = s.run("gp.finish", &json!({"id": run.id})).unwrap_err();
+    assert!(e.starts_with(R_FAILURE_PREFIX), "{e}");
+    assert!(e.contains(rustgis_r::notices::NOT_FOUND), "{e}");
+    assert_eq!(s.notices.last().and_then(|n| n.r_notice), Some(RNotice::NotFound));
+    assert_eq!(s.map().layers.len(), layers, "no layer added");
+    assert_eq!(s.project.tables.len(), tables, "no table added");
+    assert!(s.r_running.is_none());
 }
 
 /// Whether R with jsonlite and sf is ready for the R-backed tests. Prints a skip message when not.
