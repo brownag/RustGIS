@@ -159,8 +159,10 @@ Dependencies: 1 → 2 → 3 → 4 → 5. Within a wave, files are pairwise disjo
   - must edit:
     - R crate: `crates/r/src/notices.rs`, `crates/r/src/lib.rs`, `crates/r/src/manifest.rs`,
       `crates/r/src/bootstrap.R`;
-    - engine: `crates/engine/src/lib.rs` (`PendingRun`), `crates/engine/src/cmd/gp.rs`
-      (`r_complete` only);
+    - engine: `crates/engine/src/lib.rs` (`PendingRun`, `Notice`, `Session::run`'s `Err`
+      branch, a `cfg(feature = "r")` side field), `crates/engine/src/cmd/gp.rs` (`r_complete`,
+      the sync `run_r` error mapping, `finish()`); re-scoped 2026-10-16: the `apply()` →
+      `Session::run` channel is `String`, so the typed notice rides a side field;
     - UI: `crates/ui-egui/src/rnotices.rs`, `crates/ui-egui/src/chrome.rs` (two call sites);
     - tests: `crates/r/src/manifest_tests.rs`, `crates/r/src/harness_tests.rs`.
   - delete: `crates/r/src/harness.rs` (fold its `include_str!` into `lib.rs`, D5).

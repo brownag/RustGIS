@@ -16,7 +16,7 @@ Source: `feature/engine-r-runtime` commits `ac02a1d..7df1a29` (tip `59f5ca3`), p
 | 10.2.1 drop webR shim, keep hook | 2 | done |
 | 10.2.2 trim docs + RFC erratum | 2 | done |
 | 10.2.3 lang as gp.runR param | 2 | done |
-| 10.3.1 typed R notices (+ fold harness.rs) | 3 | pending |
+| 10.3.1 typed R notices (+ fold harness.rs) | 3 | done |
 | 10.4.1 gp_r submodule | 4 | pending |
 | 10.4.2 move manifest panic guard | 4 | pending |
 | 10.4.3 hostile coverage with R | 4 | pending |
@@ -57,3 +57,13 @@ Source: `feature/engine-r-runtime` commits `ac02a1d..7df1a29` (tip `59f5ca3`), p
 - Gotchas for 10.3.1: `RParams.lang` now carries the language into `r_start` (gp.rs ~149); the RNotice work should not touch it. `r_complete` and PendingRun are unchanged. Assistant `gp.run` path gets no lang (falls back to English; gp.runR is user-only).
 
 Wave 2 gate (at 28bdc53): `cargo xtask ci` pass; `cargo test -p rustgis-r -p rustgis-engine -p rustgis-ui-egui --features r` 216 passed 0 failed; wasm build pass.
+
+## 10.3.1
+- Status: done (not committed). Plan at planning/tasks/10.3.1.todo.md (answers from the approval applied).
+- Files: crates/r/src/notices.rs (RNotice, ALL_NOTICES, code/english/from_code; sync test); crates/r/src/lib.rs (inline `harness` module; RRunnerError::Notice; From impls); crates/r/src/harness.rs deleted; crates/r/src/bootstrap.R (.rgis_need takes a code, rgis_notice condition, "notice" key in manifest); crates/r/src/manifest.rs (convert_output returns RRunnerError; notice branch); crates/r/src/manifest_tests.rs, harness_tests.rs (typed asserts, new notice test); crates/engine/src/lib.rs (Notice.r_notice, Session.r_notice, PendingRun.r_notice, guarded takes it); crates/engine/src/cmd/gp.rs (r_failure, r_complete, finish, sync path); crates/engine/src/tests.rs (a_failed_r_run_keeps_its_typed_notice); crates/ui-egui/src/rnotices.rs (text_of, text); crates/ui-egui/src/chrome.rs 211, 545.
+- Tests: `cargo test -p rustgis-r` 74 passed, 0 failed. `cargo test -p rustgis-engine --features r` 115 passed, 0 failed (includes hostile_params_never_panic). `cargo test -p rustgis-ui-egui --features r` 15 + 15 passed, 0 failed.
+- Gates: `grep strip_prefix(R_FAILURE_PREFIX)` empty; no .tsv diff; clippy -D warnings clean (r, engine, ui-egui with --features r; engine+ui-egui without r); `cargo build --target wasm32-unknown-unknown -p rustgis-web` ok.
+- Deviations: harness.rs folded as an inline module (job.rs imports it); sync test checks R-side codes only (not_found is native); side field taken in `guarded`, not `Session::run`; `cargo fmt -p` reformatted the 3 rustgis-r test/src files.
+- Gotchas for 10.4.x: gp_r submodule move must carry the `r_notice` cfg fields (PendingRun literal at gp.rs ~520 is geolibre-only). `convert_output` now returns RRunnerError; the catch_unwind arm maps to Failed (10.4.2 still owns the guard). Hostile tests green. Notice text stays English, typed via `r_notice`.
+
+Wave 3 gate (at f26cd9d): `cargo xtask ci` pass; R/engine/ui-egui tests with `--features r` 219 passed 0 failed; wasm build pass; no .tsv diff.
