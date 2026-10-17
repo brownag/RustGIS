@@ -56,6 +56,10 @@ specifics for a PR to get this functionality in"; "a new branch that will just b
   `external_complete`, **outside** `Session::run`'s panic guard. The gp.rs comment says so
   ("Reading the host's output parses outside `Session::run`'s guard"). The reviewer's "redundant
   catch" finding is likely wrong. Task 10.4.2 moves the guard rather than deleting it.
+  **Corrected 2026-10-16 (10.4.2 analysis):** `panes.rs:881` is the GeoLibre arm. In the core
+  branch `r_complete` runs only inside `Session::run` (native `run_r`), but the deferred P4
+  `rjobs.rs` calls `gp::r_complete` from the UI, outside the guard, and no reusable guard
+  helper exists. Decision: keep `convert_output`'s `catch_unwind` with a comment saying why.
 - **H4** The web app enables `features = ["r"]` (apps/rustgis-web/Cargo.toml:13,15). With the shim
   gone, `gp.runR` on the web must fail cleanly through the `None` hook.
 - **H5** Catalogs: if notice English text stays byte-identical, no `.tsv` change is needed.
@@ -214,7 +218,9 @@ Dependencies: 1 → 2 → 3 → 4 → 5. Within a wave, files are pairwise disjo
   - `cargo test -p rustgis-engine --features r`;
   - `cargo test -p rustgis-engine --features geolibre,r`;
   - `cargo test -p rustgis-engine` (no features);
-  - `grep -c 'feature = "r"' crates/engine/src/cmd/gp.rs` ≤ 5.
+  - `grep -c 'feature = "r"' crates/engine/src/cmd/gp.rs` ≤ 10 (amended twice 2026-10-16: the shared
+    `ExternalJob`/`MAX_ASYNC_RUNS`/`trim_started`/`finish` gates stay rather than being hidden
+    behind `allow(dead_code)`).
 
 ## 10.4.2 — Move the manifest panic guard to the call site
 - **Files in scope:**

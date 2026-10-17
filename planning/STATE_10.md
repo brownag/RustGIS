@@ -17,10 +17,10 @@ Source: `feature/engine-r-runtime` commits `ac02a1d..7df1a29` (tip `59f5ca3`), p
 | 10.2.2 trim docs + RFC erratum | 2 | done |
 | 10.2.3 lang as gp.runR param | 2 | done |
 | 10.3.1 typed R notices (+ fold harness.rs) | 3 | done |
-| 10.4.1 gp_r submodule | 4 | pending |
-| 10.4.2 move manifest panic guard | 4 | pending |
-| 10.4.3 hostile coverage with R | 4 | pending |
-| 10.5.1 final gate + PR prep | 5 | pending |
+| 10.4.1 gp_r submodule | 4 | done |
+| 10.4.2 move manifest panic guard | 4 | done |
+| 10.4.3 hostile coverage with R | 4 | done |
+| 10.5.1 final gate + PR prep | 5 | done |
 
 ## Task reports
 
@@ -67,3 +67,34 @@ Wave 2 gate (at 28bdc53): `cargo xtask ci` pass; `cargo test -p rustgis-r -p rus
 - Gotchas for 10.4.x: gp_r submodule move must carry the `r_notice` cfg fields (PendingRun literal at gp.rs ~520 is geolibre-only). `convert_output` now returns RRunnerError; the catch_unwind arm maps to Failed (10.4.2 still owns the guard). Hostile tests green. Notice text stays English, typed via `r_notice`.
 
 Wave 3 gate (at f26cd9d): `cargo xtask ci` pass; R/engine/ui-egui tests with `--features r` 219 passed 0 failed; wasm build pass; no .tsv diff.
+
+## 10.4.1
+- Status: done (not committed). Plan at planning/tasks/10.4.1.todo.md (approved with amendments: keep all gates, no allow attrs, trim_started keeps its read, extra re-exports R_FAILURE_PREFIX and r_params).
+- Files: crates/engine/src/cmd/gp_r.rs (new, 265 lines: commands(), RRun, R_FAILURE_PREFIX, DROPPED_R_RUN, RParams, r_params, r_start, r_failure, r_complete, run_r, rscript_status, set_rscript, RJob, RRunStart, r_reset); crates/engine/src/cmd/gp.rs (re-export line 11; RJob path in ExternalJob line ~170; MapInputs, MAX_ASYNC_RUNS, trim_started, map_inputs, now_ms, finish now pub(super); 563 lines); crates/engine/src/cmd/mod.rs (`pub(crate) mod gp_r` cfg r; gp_r::commands() extended after gp::commands()); crates/engine/src/lib.rs (reset block -> `cmd::gp_r::r_reset(self)`, cfg r).
+- Tests: `cargo test -p rustgis-engine --features r` 115 passed, 0 failed. `--features geolibre,r` 117 passed, 0 failed. `cargo test -p rustgis-engine` 100 passed, 0 failed.
+- Gates: `cargo clippy -p rustgis-engine --features r -- -D warnings` clean; `cargo clippy -p rustgis-engine -- -D warnings` clean; `cargo check -p rustgis-ui-egui --features r` ok; `cargo check -p rustgis-engine --features r --target wasm32-unknown-unknown` ok, no warnings; `cargo fmt --all -- --check` clean.
+- grep: `grep -c 'feature = "r"' gp.rs` = 10 (amended limit). Remaining: re-export (10); MAX_ASYNC_RUNS (164); ExternalJob enum (168); R variant (172); trim_started (178); trim running read/None (183, 185); external_complete R arm (244); PendingRun r_notice literal (259); finish() r_notice block (279).
+- Deviations: MapInputs and finish widened to pub(super); `finish` import in gp_r gated not(wasm) to avoid an unused-import warning on wasm; registry order unchanged; the R registrations were rewritten as one vec! (same entries, same order).
+- Gotchas: `cmd::gp_r` must be `pub(crate)` for lib.rs's reset call. gp_r.rs changed on disk once mid-task (someone else's edit, not reverted by me). 10.4.3 tests import `r_params` and `R_FAILURE_PREFIX` via gp; both are re-exported.
+
+## 10.4.2
+- Status: done (not committed). Plan at planning/tasks/10.4.2.todo.md (approved: fallback A).
+- Files: crates/r/src/manifest.rs (comment only, above the catch_unwind in convert_output, ~line 26). No code change; the guard stays.
+- Tests: `cargo test -p rustgis-r` 74 passed, 0 failed. `cargo test -p rustgis-ui-egui --features r` 15 + 15 passed, 0 failed.
+- Gates: `cargo clippy --workspace -- -D warnings` clean; `cargo fmt --check -p rustgis-r` clean; `cargo build --target wasm32-unknown-unknown -p rustgis-web` ok.
+- Deviations: TODO 4 skipped (no panic-injection hook, per coordinator).
+- Gotchas: H3 premise was wrong. panes.rs:881 is the geolibre arm only; native R completes inside Session::run (gp.rs:255). Session::run's guard is inline (engine/src/lib.rs:559), not a helper. Desktop background R jobs (per coordinator) would call r_complete outside the guard, so the inner guard stays.
+
+## 10.4.3
+- Status: done (not committed). Plan at planning/tasks/10.4.3.todo.md (approved; coordinator answers applied: r_notice asserted, no gp.setRscript junk).
+- Files: crates/engine/src/tests.rs (only file changed): junk entries 2 added to hostile array (lines 589-591 approx.); new tests gp_run_r_params_reject_or_clamp_junk (818), gp_run_r_rejects_junk_before_any_run (829), gp_run_r_without_rscript_is_an_error_not_a_panic (847), all `#[cfg(feature = "r")]`).
+- Tests: `cargo test -p rustgis-engine --features r hostile` 1 passed, 0 failed. `cargo test -p rustgis-engine hostile` 1 passed, 0 failed. `cargo test -p rustgis-engine --features r` 118 passed, 0 failed (was 115 + 3 new).
+- Gates: `cargo fmt -p rustgis-engine` clean (only tests.rs modified); `cargo clippy -p rustgis-engine --features r --tests -- -D warnings` clean.
+- Deviations: none from approved plan. Spec's `gp.locateR*` does not exist; real R ids are gp.runR and gp.setRscript (ui.locateRscript is UI-only).
+- Gotchas: CHOSEN/FOUND in r/discover.rs are process-wide statics, so no test calls choose(). "No runner" is tested via RRunnerError::NotFound through r_complete + gp.finish, not via s.run("gp.runR") (approved). Hostile `{"path": 7}` for gp.setRscript would reset the global choice; deliberately not added.
+- No `skipped:` lines were required: the new tests do not launch R; the existing R-launching tests ran (no skip seen in the 118-passed run output).
+
+Wave 4 gate (at 6218ea1): `cargo xtask ci` pass; R/engine/ui-egui tests `--features r` 222 passed, `--features geolibre,r` 224 passed, 0 failed; wasm build pass; gp.rs has 10 `feature = "r"` lines.
+
+## 10.5.1
+- Final gate = wave 4 gate at 6218ea1 (no code changed after). planning/ holds only MASTER_PLAN.md, *_10.md and tasks/10.*. `git diff main...HEAD -- . ":!planning"`: 72 files, +4416/-71. PR body drafted; push/PR await the user.
