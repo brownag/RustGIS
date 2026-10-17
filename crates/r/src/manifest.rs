@@ -21,6 +21,8 @@ const MAX_MESSAGE_BYTES: usize = 4 << 10;
 /// Converts a script's output to a tool result. `rows_of` gives the host rows an input layer was
 /// read from, by name, or `None` when there is no such input. Any failure is returned as its message.
 pub fn convert_output(out: &RExecutionOutput, rows_of: &dyn Fn(&str) -> Option<Vec<usize>>) -> Result<ToolResult, RRunnerError> {
+    // `r_complete` is public and a host may call it outside `Session::run`'s guard (the desktop's
+    // background R jobs will), so the reader of hostile output guards itself.
     match catch_unwind(AssertUnwindSafe(|| convert_manifest(out, rows_of))) {
         Ok(result) => result,
         Err(_) => Err(RRunnerError::Failed("the R result could not be read".into())),
