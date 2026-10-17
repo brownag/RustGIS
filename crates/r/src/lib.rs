@@ -15,8 +15,6 @@ pub mod wire;
 mod discover;
 #[cfg(not(target_arch = "wasm32"))]
 mod native;
-#[cfg(target_arch = "wasm32")]
-mod web;
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod discover_tests;
@@ -35,8 +33,6 @@ mod tests;
 pub use discover::{choose, find, ready, version_of};
 #[cfg(not(target_arch = "wasm32"))]
 pub use native::RscriptRunner;
-#[cfg(target_arch = "wasm32")]
-pub use web::WebRRunner;
 
 pub use wire::{
     DEFAULT_TIMEOUT_S, MAX_FILE_BYTES, MAX_FILES, MAX_MANIFEST_BYTES, MAX_MESSAGES, MAX_SCRIPT_BYTES, RExecutionInput, RExecutionOutput,
@@ -78,14 +74,8 @@ pub trait RScriptRunner: Send + Sync {
     fn run(&self, input: &RExecutionInput, progress: &dyn Fn(ExecutionUpdate)) -> Result<RExecutionOutput, RRunnerError>;
 }
 
-/// The runner for this build target.
+/// The native runner: the Rscript program. There is no runner in the browser build yet.
+#[cfg(not(target_arch = "wasm32"))]
 pub fn default_runner() -> Box<dyn RScriptRunner> {
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        Box::new(RscriptRunner)
-    }
-    #[cfg(target_arch = "wasm32")]
-    {
-        Box::new(WebRRunner)
-    }
+    Box::new(RscriptRunner)
 }
