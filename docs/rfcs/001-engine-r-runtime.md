@@ -496,3 +496,12 @@ Implementation proceeds across four sequential phases verified by cargo xtask ci
 
 
 
+
+## Erratum
+
+These corrections apply to the sections above. The RFC body is kept as written.
+
+1. **Flags.** The RFC says `Rscript --vanilla` (lines 297, 302, 459, 466, 467). The code runs `Rscript --no-save --no-restore --no-init-file bootstrap.R` (`crates/r/src/native.rs:88`). `--vanilla` would also skip `.Renviron`, which RustGIS keeps. See MASTER_PLAN D9.
+2. **Catalog.** `crates/engine/src/catalog.rs` does not exist. Commands register in `crates/engine/src/cmd/gp.rs`, not in a catalog file (`r.runScript` in line 462 is `gp.runR` in code).
+3. **Crate path.** The R runner is `crates/r` (package `rustgis-r`), not `crates/r-runner`.
+4. **Scope.** The runner is native only: desktop, CLI and Python. The webR bridge is future work behind the `Services::r_run` hook. The web app sets that hook to `None`, so `gp.runR` fails cleanly in the browser.
