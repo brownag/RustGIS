@@ -3,7 +3,7 @@
 //! `"` written as `\"`).
 
 /// The `Rscript` program was not found.
-pub const NOT_FOUND: &str = "Rscript was not found";
+pub const NOT_FOUND: &str = "Rscript was not found: install R from https://cran.r-project.org, or set RUSTGIS_RSCRIPT to the Rscript program; you can also pick it with Locate Rscript…";
 
 /// `jsonlite` is missing, so the script cannot write its results.
 pub const NEED_JSONLITE: &str = "RustGIS needs the R package 'jsonlite'; install it with install.packages(\"jsonlite\")";
@@ -76,6 +76,13 @@ mod tests {
             let escaped = n.english().replace('"', "\\\"");
             assert!(BOOTSTRAP_R.contains(&escaped), "bootstrap.R lacks: {}", n.english());
         }
+    }
+
+    #[test]
+    fn not_found_says_how_to_fix_it() {
+        assert!(NOT_FOUND.contains("RUSTGIS_RSCRIPT"), "{NOT_FOUND}");
+        assert!(NOT_FOUND.contains("https://cran.r-project.org"), "{NOT_FOUND}");
+        assert!(NOT_FOUND.contains("Locate Rscript"), "{NOT_FOUND}");
     }
 
     #[test]

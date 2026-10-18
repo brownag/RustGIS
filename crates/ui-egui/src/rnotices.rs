@@ -35,7 +35,7 @@ fn text(n: rustgis_engine::r::RNotice) -> String {
 mod tests {
     use super::*;
     use crate::i18n::{Lang, tr};
-    use rustgis_engine::r::notices::ALL_NOTICES;
+    use rustgis_engine::r::notices::{ALL_NOTICES, NOT_FOUND};
 
     fn notice(text: &str, r: Option<rustgis_engine::r::RNotice>) -> Notice {
         Notice { text: text.into(), error: true, r_notice: r }
@@ -56,6 +56,6 @@ mod tests {
 
     #[test]
     fn english_notice_matches_the_catalog_key() {
-        assert_eq!(text(rustgis_engine::r::RNotice::NotFound), tr(Lang::EN, "Rscript was not found"));
+        assert_eq!(text(rustgis_engine::r::RNotice::NotFound), tr(Lang::EN, NOT_FOUND));
     }
 }
