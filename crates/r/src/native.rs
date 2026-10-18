@@ -61,7 +61,7 @@ fn fail(e: impl std::fmt::Display) -> RRunnerError {
 impl RscriptRunner {
     /// The `Rscript` program that answers `--version` (see `discover::find`).
     pub fn locate(&self) -> Result<PathBuf, RRunnerError> {
-        crate::discover::find().map(|(exe, _)| exe).ok_or(RRunnerError::NotFound)
+        crate::discover::find().map(|(exe, _)| exe).ok_or(RRunnerError::Notice(crate::RNotice::NotFound))
     }
 }
 

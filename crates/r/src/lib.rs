@@ -67,8 +67,6 @@ pub enum ExecutionUpdate {
 /// Why a script could not run.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum RRunnerError {
-    #[error("{}", crate::notices::NOT_FOUND)]
-    NotFound,
     #[error("{}", .0.english())]
     Notice(RNotice),
     #[error("not supported here: {0}")]

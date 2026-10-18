@@ -58,7 +58,7 @@ fn run_without_r_reports_the_missing_program_or_runs() -> TestResult {
     let result = RscriptRunner.run(&input, &|_| {});
     if RscriptRunner.locate().is_err() {
         println!("skipped: Rscript not available");
-        assert_eq!(result, Err(RRunnerError::NotFound));
+        assert_eq!(result, Err(RRunnerError::Notice(RNotice::NotFound)));
     } else {
         assert!(result.is_ok(), "{result:?}");
     }

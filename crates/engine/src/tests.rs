@@ -1374,7 +1374,7 @@ fn gp_run_r_without_rscript_is_an_error_not_a_panic() {
     let layers = s.map().layers.len();
     let tables = s.project.tables.len();
     let run = r_start(&mut s, &json!({"script": "1"})).unwrap().unwrap();
-    r_complete(&mut s, run.id, Err(RRunnerError::NotFound)).unwrap();
+    r_complete(&mut s, run.id, Err(RRunnerError::Notice(RNotice::NotFound))).unwrap();
     let e = s.run("gp.finish", &json!({"id": run.id})).unwrap_err();
     assert!(e.starts_with(R_FAILURE_PREFIX), "{e}");
     assert!(e.contains(rustgis_r::notices::NOT_FOUND), "{e}");

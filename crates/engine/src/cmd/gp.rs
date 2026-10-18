@@ -179,6 +179,9 @@ pub(crate) enum ExternalJob {
     R(super::gp_r::RJob),
 }
 
+/// Why a queued run can be dropped. Each queue's message adds its own subject to it.
+pub(crate) const DROPPED_RUN_WHY: &str = "its project was closed, or too many runs were waiting";
+
 /// Drops the oldest started run once the queue is over `MAX_ASYNC_RUNS`, never the R run under
 /// way (`r_running`).
 #[cfg(any(feature = "geolibre", feature = "r"))]
@@ -243,12 +246,12 @@ pub fn external_complete(s: &mut Session, id: u64, ran: ExternalOutput) -> Resul
             .started
             .iter()
             .position(|(n, j, ..)| *n == id && matches!(j, ExternalJob::GeoLibre(_)))
-            .ok_or("the tool's run was dropped (its project was closed, or too many runs were waiting)")?;
+            .ok_or_else(|| format!("the tool's run was dropped ({DROPPED_RUN_WHY})"))?;
         let (_, job, params, t0) = s.started.remove(i);
         let job = match job {
             ExternalJob::GeoLibre(job) => job,
             #[cfg(feature = "r")]
-            ExternalJob::R(_) => return Err("the tool's run was dropped (its project was closed, or too many runs were waiting)".into()),
+            ExternalJob::R(_) => return Err(format!("the tool's run was dropped ({DROPPED_RUN_WHY})")),
         };
         // Reading the runner's files back parses outside `Session::run`'s guard: a bug in a
         // reader must not take the app down.
@@ -370,7 +373,7 @@ pub fn plugin_complete(s: &mut Session, id: u64, result: Result<rustgis_analysis
         .plugin_runs
         .iter()
         .position(|r| r.id == id)
-        .ok_or("the tool's run was dropped (its project was closed, or too many runs were waiting)")?;
+        .ok_or_else(|| format!("the tool's run was dropped ({DROPPED_RUN_WHY})"))?;
     let run = s.plugin_runs.remove(i);
     let mut result = result;
     fit_to_changes(s, &mut result, &run.name, &run.read);

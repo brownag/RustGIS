@@ -4,7 +4,7 @@
 use rustgis_analysis::Inputs;
 use serde_json::{Value, json};
 
-use super::gp::{ExternalJob, MAX_ASYNC_RUNS, map_inputs, now_ms, trim_started};
+use super::gp::{DROPPED_RUN_WHY, ExternalJob, MAX_ASYNC_RUNS, map_inputs, now_ms, trim_started};
 use super::ps;
 use crate::{CmdResult, CommandSpec as C, Session};
 
@@ -28,9 +28,6 @@ pub struct RRun {
 /// The text a runner failure starts with (no Rscript, a crash, the time limit). A script's own
 /// error comes without it.
 pub const R_FAILURE_PREFIX: &str = "R script: ";
-
-/// The text for a run that was dropped before it finished.
-const DROPPED_R_RUN: &str = "the R script's run was dropped (its project was closed, or too many runs were waiting)";
 
 /// The checked parameters of a `gp.runR` run (see [`r_params`]).
 pub struct RParams {
@@ -118,10 +115,9 @@ pub fn r_start(s: &mut Session, params: &Value) -> Result<Option<RRunStart>, Str
 
 /// The text of a failed R run and its typed notice, if it has one.
 fn r_failure(e: rustgis_r::RRunnerError) -> (String, Option<rustgis_r::RNotice>) {
-    use rustgis_r::{RNotice, RRunnerError};
+    use rustgis_r::RRunnerError;
     match e {
         RRunnerError::Notice(n) => (n.english().into(), Some(n)),
-        RRunnerError::NotFound => (RNotice::NotFound.english().into(), Some(RNotice::NotFound)),
         RRunnerError::Unsupported(m) => (format!("not supported here: {m}"), None),
         RRunnerError::Failed(m) => (m, None),
     }
@@ -134,11 +130,12 @@ pub fn r_complete(
     id: u64,
     ran: Result<rustgis_r::RExecutionOutput, rustgis_r::RRunnerError>,
 ) -> Result<Option<RRunStart>, String> {
-    let i = s.started.iter().position(|(n, j, ..)| *n == id && matches!(j, ExternalJob::R(_))).ok_or(DROPPED_R_RUN)?;
+    let dropped = || format!("the R script's run was dropped ({DROPPED_RUN_WHY})");
+    let i = s.started.iter().position(|(n, j, ..)| *n == id && matches!(j, ExternalJob::R(_))).ok_or_else(dropped)?;
     let (_, job, params, t0) = s.started.remove(i);
     #[cfg(feature = "geolibre")]
     let ExternalJob::R(job) = job else {
-        return Err(DROPPED_R_RUN.into());
+        return Err(dropped());
     };
     #[cfg(not(feature = "geolibre"))]
     let ExternalJob::R(job) = job;

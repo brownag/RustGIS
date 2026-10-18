@@ -87,7 +87,7 @@ mod tests {
 
     #[test]
     fn not_found_error_uses_the_constant() {
-        assert_eq!(RRunnerError::NotFound.to_string(), NOT_FOUND);
+        assert_eq!(RRunnerError::Notice(RNotice::NotFound).to_string(), NOT_FOUND);
         assert_eq!(RRunnerError::Notice(RNotice::NeedSf).to_string(), NEED_SF);
     }
 }
