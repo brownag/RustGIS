@@ -11,7 +11,7 @@ use crate::{CmdResult, CommandSpec as C, GpRecord, Session};
 pub use super::gp_r::{R_FAILURE_PREFIX, RRun, RRunStart, r_complete, r_params, r_start};
 
 pub fn commands() -> Vec<C> {
-    let v = vec![
+    vec![
         C::new("gp.run", "Run Tool", "Analyze › Geoprocessing", run).when(need_layers).params(r#"{"tool": tool id, "params": {...} (a layer by name; a standalone table by name or id)}"#),
         C::new("gp.spatialJoin", "Spatial Join", "Analyze › Overlay", spatial_join)
             .when(need_layers)
@@ -50,8 +50,7 @@ pub fn commands() -> Vec<C> {
             s.project.gp_history.clear();
             Ok(Value::Null)
         }),
-    ];
-    v
+    ]
 }
 
 /// The GeoLibre tools (empty when the suite isn't installed, or the build doesn't include it).
