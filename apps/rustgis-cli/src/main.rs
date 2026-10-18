@@ -57,12 +57,24 @@ fn print(v: &Value) {
 /// Runs a command; what it said beside its result (the app's status bar) goes to standard error.
 fn run(s: &mut Session, id: &str, p: Value) -> Result<Value, String> {
     let mark = s.notice_mark();
-    let r = s.run(id, &p);
+    let r = if id == "gp.runR" { run_r_here(s, &p) } else { s.run(id, &p) };
     // A failure is noted too; it's printed once, by the caller.
     for n in s.notices_since(mark).iter().filter(|n| r.as_ref().err() != Some(&n.text)) {
         eprintln!("rustgis-cli: {}{}", if n.error { "error: " } else { "" }, n.text);
     }
     r.map_err(|e| format!("{id}: {e}"))
+}
+
+/// Runs `gp.runR` to completion on this thread: the CLI has no window to run it in the background.
+/// The queue hands the run over, the runner runs it, and `gp.finish` applies it.
+fn run_r_here(s: &mut Session, p: &Value) -> Result<Value, String> {
+    use rustgis_engine::cmd::gp::{r_complete, r_start};
+    let Some(start) = r_start(s, p)? else { return Err("internal: an R run was queued".into()) };
+    let ran = rustgis_engine::r::default_runner().run(&start.input, &|_| {});
+    if r_complete(s, start.id, ran)?.is_some() {
+        return Err("internal: an R run was queued".into());
+    }
+    s.run("gp.finish", &json!({"id": start.id}))
 }
 
 /// Makes a Python plugin's environment, saying what it's doing as it goes.

@@ -4,8 +4,6 @@
 use rustgis_analysis::Inputs;
 use serde_json::{Value, json};
 
-#[cfg(not(target_arch = "wasm32"))]
-use super::gp::finish;
 use super::gp::{ExternalJob, MAX_ASYNC_RUNS, map_inputs, now_ms, trim_started};
 use super::ps;
 use crate::{CmdResult, CommandSpec as C, Session};
@@ -203,8 +201,9 @@ pub fn r_complete(
     }
 }
 
-/// Runs an R script inline with the native runner and applies its result (one undo step). The
-/// parameters and input names are checked first. The browser refuses until its runner is wired in.
+/// Queues an R script for the host to run (the desktop runs it on a thread, the CLI on its own
+/// thread; see [`r_start`]). The parameters and input names are checked first. The engine never
+/// runs R itself. The browser refuses until its runner is wired in.
 fn run_r(s: &mut Session, p: &Value) -> CmdResult {
     let params = r_params(p)?;
     for name in &params.inputs {
@@ -212,17 +211,9 @@ fn run_r(s: &mut Session, p: &Value) -> CmdResult {
     }
     #[cfg(not(target_arch = "wasm32"))]
     {
-        if s.r_running.is_some() {
-            return Err("another R script is still running".into());
-        }
-        let Some(run) = r_start(s, p)? else {
-            return Err("internal: an R run was queued".into());
-        };
-        let ran = rustgis_r::default_runner().run(&run.input, &|_| {});
-        if r_complete(s, run.id, ran)?.is_some() {
-            return Err("internal: an R run was queued".into());
-        }
-        finish(s, &json!({"id": run.id}))
+        // The host launches the run when `r_start` hands it back; the id is the run just queued.
+        r_start(s, p)?;
+        Ok(json!({"queued": s.next_pending}))
     }
     #[cfg(target_arch = "wasm32")]
     Err("R scripts can't run in this build yet".into())

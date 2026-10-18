@@ -1396,19 +1396,42 @@ fn r_ready() -> bool {
 
 #[cfg(all(feature = "r", not(target_arch = "wasm32")))]
 #[test]
-fn gp_run_r_runs_inline_and_adds_a_table() {
-    if !r_ready() {
-        return;
-    }
+fn gp_run_r_queues_and_does_not_run_inline() {
+    use crate::cmd::gp::r_complete;
     let mut s = world();
     let tables = s.project.tables.len();
-    let script = "rgis_write_table(data.frame(name = c(\"alpha\", \"beta\"), score = c(3, 4)), \"Stats\")";
-    s.run("gp.runR", &json!({"script": script})).unwrap();
+    let r = s.run("gp.runR", &json!({"script": "1"})).unwrap();
+    assert!(r.get("queued").is_some(), "{r}");
+    assert_eq!(s.project.tables.len(), tables, "nothing ran inline");
+    let id = s.r_running.unwrap();
+    // The host hands the output back and applies it; undo removes it.
+    assert!(r_complete(&mut s, id, Ok(r_table_output())).unwrap().is_none());
+    s.run("gp.finish", &json!({"id": id})).unwrap();
     assert_eq!(s.project.tables.len(), tables + 1);
-    assert!(s.project.tables.iter().any(|t| t.name == "Stats"));
-    assert!(s.r_running.is_none());
     s.run("edit.undo", &Value::Null).unwrap();
     assert_eq!(s.project.tables.len(), tables, "undo removes it");
+}
+
+#[cfg(feature = "r")]
+#[test]
+fn gp_run_r_while_one_is_running_queues_behind_it() {
+    let mut s = with_raster();
+    let first = s.run("gp.runR", &json!({"script": "1"})).unwrap();
+    let second = s.run("gp.runR", &json!({"script": "2"})).unwrap();
+    assert!(first.get("queued").is_some() && second.get("queued").is_some());
+    assert_eq!(s.started.len(), 2, "both wait in the queue");
+    assert_eq!(s.r_running, Some(s.next_pending - 1), "the first run stays the one under way");
+}
+
+/// Runs `gp.runR` the way a host does: queue it, run it on this thread, hand the output back, and
+/// apply it with `gp.finish`. The desktop and the CLI do the same, on their own threads.
+#[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+fn run_r_as_host(s: &mut Session, params: &Value) -> Result<Value, String> {
+    use crate::cmd::gp::{r_complete, r_start};
+    let Some(start) = r_start(s, params)? else { return Err("queued behind another run".into()) };
+    let ran = rustgis_r::default_runner().run(&start.input, &|_| {});
+    r_complete(s, start.id, ran)?;
+    s.run("gp.finish", &json!({"id": start.id}))
 }
 
 #[cfg(all(feature = "r", not(target_arch = "wasm32")))]
@@ -1420,7 +1443,7 @@ fn gp_run_r_passes_the_interface_language_to_r() {
     for (lang, expected) in [("de", "de"), ("zh", "zh_CN")] {
         let mut s = world();
         let script = "rgis_write_table(data.frame(lang = Sys.getenv(\"LANGUAGE\")), \"L\")";
-        s.run("gp.runR", &json!({"script": script, "lang": lang})).unwrap();
+        run_r_as_host(&mut s, &json!({"script": script, "lang": lang})).unwrap();
         let table = s.project.tables.iter().find(|t| t.name == "L");
         let value = table.and_then(|t| t.dataset.features.first()).and_then(|f| f.attrs.first());
         assert_eq!(value, Some(&rustgis_data::Value::Text(expected.into())), "LANGUAGE for {lang}");
@@ -1448,7 +1471,7 @@ fn gp_run_r_failure_leaves_project_untouched() {
     let layers = s.map().layers.len();
     let tables = s.project.tables.len();
     let undo = s.undo_label();
-    let e = s.run("gp.runR", &json!({"script": "stop(\"boom\")"})).unwrap_err();
+    let e = run_r_as_host(&mut s, &json!({"script": "stop(\"boom\")"})).unwrap_err();
     assert!(e.contains("boom"), "{e}");
     assert_eq!(s.map().layers.len(), layers, "no layer added");
     assert_eq!(s.project.tables.len(), tables, "no table added");
@@ -1496,7 +1519,7 @@ fn gp_run_r_timeout_leaves_project_untouched() {
     let tables = s.project.tables.len();
     let undo = s.undo_label();
     let t0 = std::time::Instant::now();
-    let e = s.run("gp.runR", &json!({"script": "Sys.sleep(30)", "timeout_s": 1})).unwrap_err();
+    let e = run_r_as_host(&mut s, &json!({"script": "Sys.sleep(30)", "timeout_s": 1})).unwrap_err();
     assert!(e.contains("stopped after 1 s"), "{e}");
     assert!(t0.elapsed() < std::time::Duration::from_secs(10), "the limit held");
     assert_eq!(s.map().layers.len(), layers, "no layer added");

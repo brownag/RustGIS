@@ -104,6 +104,10 @@ const RASTER_DEFAULTS_PREF: &str = "raster_default_style";
 /// A result an asynchronous service fills in when it's done (the app polls it each frame).
 pub type Slot<T> = std::sync::Arc<std::sync::Mutex<Option<T>>>;
 
+/// What a desktop R run's thread puts in its slot.
+#[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+pub type RRunOutput = Result<rustgis_engine::r::RExecutionOutput, rustgis_engine::r::RRunnerError>;
+
 /// A shell's overrides of the Settings › Start-up preferences for one launch.
 #[derive(Clone, Debug, Default)]
 pub struct Start {
@@ -220,7 +224,7 @@ pub struct Services {
     pub geolibre_run: Option<Box<dyn Fn(rustgis_engine::cmd::gp::ExternalRun, Slot<rustgis_engine::cmd::gp::ExternalOutput>)>>,
     /// The browser's R runner: runs one `gp.runR` job and puts the output JSON (or the error) in
     /// the slot. The web app leaves it `None` until webR is wired up (P6), so browser R runs
-    /// refuse; the desktop runs R inline.
+    /// refuse; the desktop queues R runs and runs them on a thread (see `poll_r_run`).
     #[cfg(feature = "r")]
     pub r_run: Option<Box<dyn Fn(rustgis_engine::cmd::gp::RRun, Slot<Result<serde_json::Value, String>>)>>,
     /// Downloads a URL into the slot (the browser's fetch; the desktop downloads on a thread).
@@ -691,6 +695,9 @@ pub struct RustGisApp {
     pub map: mapview::MapView,
     pub dialogs: dialogs::Dialogs,
     pub gp: panes::GpForm,
+    /// The desktop R run on its thread: its id, and the slot the thread fills (see `poll_r_run`).
+    #[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+    pub r_job: Option<(u64, Slot<RRunOutput>)>,
     pub table: table::TableState,
     pub layout: layoutview::LayoutView,
     /// The text graphic the Format pane edits (#516).
@@ -777,6 +784,8 @@ impl RustGisApp {
             map: mapview::MapView::default(),
             dialogs: dialogs::Dialogs::default(),
             gp: panes::GpForm::default(),
+            #[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+            r_job: None,
             table: table::TableState::default(),
             layout: layoutview::LayoutView::default(),
             graphic_format: graphicformat::GraphicFormat::default(),
@@ -1325,6 +1334,69 @@ impl RustGisApp {
         self.ui.last_project = Some(path);
     }
 
+    /// The desktop's `gp.runR`: queues the script and starts it on a thread of its own (see
+    /// `poll_r_run`). None for other commands.
+    #[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+    fn start_r_run(&mut self, id: &str, params: &Value) -> Option<Result<Value, String>> {
+        if id != "gp.runR" {
+            return None;
+        }
+        let r = rustgis_engine::cmd::gp::r_start(&mut self.session, params).map(|start| {
+            if let Some(start) = start {
+                self.spawn_r_run(start);
+            }
+            json!({"queued": true})
+        });
+        Some(r)
+    }
+
+    #[cfg(not(all(feature = "r", not(target_arch = "wasm32"))))]
+    fn start_r_run(&mut self, _id: &str, _params: &Value) -> Option<Result<Value, String>> {
+        None
+    }
+
+    /// Runs a queued R script on a thread of its own; `poll_r_run` applies what it returns.
+    #[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+    fn spawn_r_run(&mut self, start: rustgis_engine::cmd::gp::RRunStart) {
+        let slot: Slot<RRunOutput> = Slot::default();
+        let (out, input, id) = (slot.clone(), start.input, start.id);
+        let spawned = std::thread::Builder::new().name("R script".into()).spawn(move || {
+            let ran = rustgis_engine::r::default_runner().run(&input, &|_| {});
+            // Filled even when poisoned, or the poll would wait for it forever.
+            *out.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(ran);
+        });
+        if let Err(e) = spawned {
+            // The thread never started: the run fails through the same path as a failed one.
+            *slot.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(Err(rustgis_engine::r::RRunnerError::Failed(e.to_string())));
+        }
+        self.r_job = Some((id, slot));
+    }
+
+    /// Applies a desktop R run its thread has finished, then starts the next queued one. Like
+    /// `gp.runR` did inline, a run that can't be completed (its project was closed) is logged
+    /// and not applied.
+    #[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+    fn poll_r_run(&mut self, ctx: &egui::Context) {
+        let Some((id, slot)) = &self.r_job else { return };
+        let (id, slot) = (*id, slot.clone());
+        let ran = slot.lock().unwrap_or_else(std::sync::PoisonError::into_inner).take();
+        let Some(ran) = ran else {
+            ctx.request_repaint_after(std::time::Duration::from_millis(100));
+            return;
+        };
+        self.r_job = None;
+        match rustgis_engine::cmd::gp::r_complete(&mut self.session, id, ran) {
+            Ok(next) => {
+                if let Some(next) = next {
+                    self.spawn_r_run(next);
+                }
+                // Errors are logged by `run`, as every command's are.
+                let _ = self.run("gp.finish", json!({"id": id}));
+            }
+            Err(e) => log::info!("gp.runR: {e}"),
+        }
+    }
+
     /// Runs a command by id: `ui.*` here, everything else in the engine.
     pub fn run(&mut self, id: &str, params: Value) -> Result<Value, String> {
         if !matches!(id, "ui.menu" | "ui.ribbon" | "ui.language" | "ui.worldview") {
@@ -1351,7 +1423,13 @@ impl RustGisApp {
         let rscript = (id == "gp.setRscript").then(|| params.get("path").and_then(Value::as_str).unwrap_or("").trim().to_string());
         // The engine's programs (R) get the language the interface is drawn in, unless the caller named one.
         let params = if id == "gp.runR" { with_lang(params, self.shown_lang.code()) } else { params };
-        let r = if id.starts_with("ui.") { self.run_ui(id, &params) } else { self.session.run(id, &params) };
+        let r = if id.starts_with("ui.") {
+            self.run_ui(id, &params)
+        } else if let Some(r) = self.start_r_run(id, &params) {
+            r
+        } else {
+            self.session.run(id, &params)
+        };
         if let Err(e) = &r {
             log::info!("{id}: {e}");
         }
@@ -3097,6 +3175,8 @@ impl RustGisApp {
         rustgis_engine::plugins::set_language(self.lang().code());
         panes::poll_geolibre(self, ctx);
         panes::poll_plugin_run(self, ctx);
+        #[cfg(all(feature = "r", not(target_arch = "wasm32")))]
+        self.poll_r_run(ctx);
         self.poll_downloads();
         // A value picked under Dynamic Text lasts while the text tool does, however the tool
         // changes (Esc, another tool, a text placed without Keep Tool, a command).
