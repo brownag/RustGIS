@@ -14,8 +14,8 @@
 # A script error writes ok:false and the error text. A script may return layers or a
 # selection, not both. Selection rows count within the rows rgis_read_layer returned for that
 # input. The host treats a missing or invalid manifest as a failure. If jsonlite is missing,
-# the harness writes a failure manifest by hand. If params.json or out/ cannot be read or made,
-# the harness stops with no manifest. Otherwise it exits 0 once the manifest is written.
+# the harness writes a failure manifest by hand. A failure in the setup (params.json or out/)
+# also writes a failure manifest by hand. Otherwise it exits 0 once the manifest is written.
 #
 # Helpers live in globalenv(), so the script (run in a child of globalenv()) can call them.
 # Private state lives in .rgis_state.
@@ -230,32 +230,50 @@ rgis_write_table <- function(df, name) {
   .rgis_add_layer(name, file, "table", "csv")
 }
 
-# Reads params.json, sets up out/, then runs the script.
+# Writes out/manifest.json with ok:false by hand, for when the JSON writer is not usable. The
+# message escapes only \ and ".
+.rgis_write_failure <- function(msg, notice = NULL) {
+  msg <- gsub("\\", "\\\\", msg, fixed = TRUE)
+  msg <- gsub("\"", "\\\"", msg, fixed = TRUE)
+  notice <- if (is.null(notice)) "null" else paste0("\"", notice, "\"")
+  dir.create("out", showWarnings = FALSE, recursive = TRUE)
+  writeLines(paste0("{\"version\":1,\"ok\":false,\"error\":\"", msg,
+                    "\",\"notice\":", notice, ",\"layers\":[],\"selection\":null,\"messages\":[]}"),
+             file.path("out", "manifest.json"))
+}
+
+# Reads params.json, sets up out/, then runs the script. A setup failure writes the failure
+# manifest and skips the script.
 .rgis_main <- function() {
   if (!requireNamespace("jsonlite", quietly = TRUE)) {
     # Without jsonlite the JSON writer is missing, so the failure manifest is written by hand.
-    msg <- "RustGIS needs the R package 'jsonlite'; install it with install.packages(\"jsonlite\")"
-    msg <- gsub("\\", "\\\\", msg, fixed = TRUE)
-    msg <- gsub("\"", "\\\"", msg, fixed = TRUE)
-    dir.create("out", showWarnings = FALSE, recursive = TRUE)
-    writeLines(paste0("{\"version\":1,\"ok\":false,\"error\":\"", msg,
-                      "\",\"notice\":\"need_jsonlite\",\"layers\":[],\"selection\":null,\"messages\":[]}"),
-               file.path("out", "manifest.json"))
+    .rgis_write_failure("RustGIS needs the R package 'jsonlite'; install it with install.packages(\"jsonlite\")",
+                        notice = "need_jsonlite")
     return(invisible(NULL))
   }
-  params <- jsonlite::fromJSON("params.json", simplifyVector = FALSE)
-  if (!is.list(params) || !isTRUE(params[["version"]] == 1)) {
-    stop("params.json is not version 1", call. = FALSE)
+  setup <- tryCatch({
+    params <- jsonlite::fromJSON("params.json", simplifyVector = FALSE)
+    if (!is.list(params) || !isTRUE(params[["version"]] == 1)) {
+      stop("params.json is not version 1", call. = FALSE)
+    }
+    lang <- params[["lang"]]
+    if (!is.character(lang) || length(lang) != 1L || !nzchar(lang)) lang <- "en"
+    Sys.setenv(LANGUAGE = lang)
+    args <- params[["args"]]
+    .rgis_state$args <- if (is.list(args)) args else list()
+    inputs <- params[["inputs"]]
+    .rgis_state$inputs <- if (is.list(inputs)) inputs else list()
+    dir.create("out", showWarnings = FALSE, recursive = TRUE)
+    if (!dir.exists("out")) stop("could not create the out/ directory", call. = FALSE)
+    NULL
+  }, error = function(e) {
+    msg <- conditionMessage(e)
+    if (nzchar(msg)) msg else "the harness setup failed"
+  })
+  if (!is.null(setup)) {
+    .rgis_write_failure(setup)
+    return(invisible(NULL))
   }
-  lang <- params[["lang"]]
-  if (!is.character(lang) || length(lang) != 1L || !nzchar(lang)) lang <- "en"
-  Sys.setenv(LANGUAGE = lang)
-  args <- params[["args"]]
-  .rgis_state$args <- if (is.list(args)) args else list()
-  inputs <- params[["inputs"]]
-  .rgis_state$inputs <- if (is.list(inputs)) inputs else list()
-  dir.create("out", showWarnings = FALSE, recursive = TRUE)
-  if (!dir.exists("out")) stop("could not create the out/ directory", call. = FALSE)
   .rgis_run()
 }
 

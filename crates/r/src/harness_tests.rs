@@ -264,27 +264,16 @@ impl Drop for JobDir {
     }
 }
 
-#[test]
-fn harness_without_jsonlite_writes_failure_manifest() -> TestResult {
-    if skip_without_r() {
-        return Ok(());
-    }
-    let _r = lock_r();
+/// Runs the job's `bootstrap.R` in a fresh folder with the given job files, and returns the exit
+/// status and the `out/manifest.json` it wrote, as a result file.
+fn run_bootstrap(files: &[RFile]) -> Result<(std::process::ExitStatus, RExecutionOutput), Box<dyn std::error::Error>> {
     let program = RscriptRunner.locate().map_err(|e| e.to_string())?;
-    let input = RExecutionInput { script: "invisible(NULL)".into(), ..Default::default() };
-    let mut files = build_job_files(&input)?;
-    let jsonlite_call = "requireNamespace(\"jsonlite\"";
-    for file in files.iter_mut().filter(|f| f.path == "bootstrap.R") {
-        let text = std::str::from_utf8(&file.data)?;
-        assert_eq!(text.matches(jsonlite_call).count(), 1);
-        file.data = text.replace(jsonlite_call, "requireNamespace(\"rgisNoSuchPackage\"").into_bytes();
-    }
     let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_nanos();
     let dir = JobDir(
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../target").join(format!("rgis-r-bootstrap-{}-{nanos:x}", std::process::id())),
     );
     std::fs::create_dir_all(dir.0.join("out"))?;
-    for file in &files {
+    for file in files {
         let path = dir.0.join(&file.path);
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
@@ -300,11 +289,52 @@ fn harness_without_jsonlite_writes_failure_manifest() -> TestResult {
         .status()?;
     let manifest = std::fs::read(dir.0.join("out").join("manifest.json"))?;
     let out = RExecutionOutput { files: vec![RFile { path: "out/manifest.json".into(), data: manifest }], ..Default::default() };
+    Ok((status, out))
+}
+
+#[test]
+fn harness_without_jsonlite_writes_failure_manifest() -> TestResult {
+    if skip_without_r() {
+        return Ok(());
+    }
+    let _r = lock_r();
+    let input = RExecutionInput { script: "invisible(NULL)".into(), ..Default::default() };
+    let mut files = build_job_files(&input)?;
+    let jsonlite_call = "requireNamespace(\"jsonlite\"";
+    for file in files.iter_mut().filter(|f| f.path == "bootstrap.R") {
+        let text = std::str::from_utf8(&file.data)?;
+        assert_eq!(text.matches(jsonlite_call).count(), 1);
+        file.data = text.replace(jsonlite_call, "requireNamespace(\"rgisNoSuchPackage\"").into_bytes();
+    }
+    let (status, out) = run_bootstrap(&files)?;
     assert!(status.success(), "Rscript exited with {status:?}");
     let Err(err) = convert_output(&out, &|_| None) else {
         return Err("expected the failure manifest to be an error".into());
     };
     assert_eq!(err, RRunnerError::Notice(RNotice::NeedJsonlite));
+    Ok(())
+}
+
+#[test]
+fn harness_setup_failure_writes_failure_manifest() -> TestResult {
+    if skip_without_r() {
+        return Ok(());
+    }
+    let _r = lock_r();
+    let input = RExecutionInput { script: "invisible(NULL)".into(), ..Default::default() };
+    let mut files = build_job_files(&input)?;
+    for file in files.iter_mut().filter(|f| f.path == "params.json") {
+        file.data = b"{\"version\":2}".to_vec();
+    }
+    let (status, out) = run_bootstrap(&files)?;
+    assert!(status.success(), "Rscript exited with {status:?}");
+    let Err(err) = convert_output(&out, &|_| None) else {
+        return Err("expected the failure manifest to be an error".into());
+    };
+    let RRunnerError::Failed(message) = err else {
+        return Err(format!("expected a failed run, got {err:?}").into());
+    };
+    assert!(message.contains("params.json is not version 1"), "{message}");
     Ok(())
 }
 
