@@ -178,7 +178,6 @@ fn header_and_shape_errors() -> TestResult {
         json!({"version": 2, "ok": true, "selection": {"layer": "Cities", "rows": [1]}}),
         json!({"version": 1, "selection": {"layer": "Cities", "rows": [1]}}),
         json!({"version": 1, "ok": "yes", "selection": {"layer": "Cities", "rows": [1]}}),
-        json!({"version": 1, "ok": true}),
         json!({"version": 1, "ok": true, "layers": [{"name": "Hot spots", "file": "out/0.fgb", "kind": "vector", "format": "fgb"}],
                "selection": {"layer": "Cities", "rows": [1]}}),
         json!({"version": 1, "ok": true, "selection": {"layer": "Nope", "rows": [1]}}),
@@ -353,5 +352,44 @@ fn failed_manifest_ignores_printed_lines() -> TestResult {
     let mut out = bare(&json!({"version": 1, "ok": false, "error": "boom"}));
     out.stdout = "printed".into();
     assert_eq!(failure(&out)?, "boom");
+    Ok(())
+}
+
+#[test]
+fn empty_manifest_is_an_empty_output_with_its_messages() -> TestResult {
+    let base = json!({"version": 1, "ok": true, "messages": [{"level": "warn", "text": "only printed"}]});
+    for layers in [None, Some(Value::Null), Some(json!([]))] {
+        let mut manifest = base.clone();
+        if let (Some(value), Some(obj)) = (layers, manifest.as_object_mut()) {
+            obj.insert("layers".into(), value);
+        }
+        let mut out = bare(&manifest);
+        out.stdout = "printed".into();
+        let result = convert_output(&out, &cities_rows)?;
+        let Output::Layers(layers) = result.output else {
+            return Err("expected an empty layers output".into());
+        };
+        assert!(layers.is_empty());
+        assert_eq!(result.messages, vec!["warning: only printed".to_string(), "printed".to_string()]);
+    }
+    Ok(())
+}
+
+#[test]
+fn layers_and_selection_together_still_error() -> TestResult {
+    let mut manifest = standard_manifest();
+    if let Some(obj) = manifest.as_object_mut() {
+        obj.insert("selection".into(), json!({"layer": "Cities", "rows": [1]}));
+    }
+    assert_eq!(failure(&bare(&manifest))?, "the R result must list layers or a selection, not both");
+    Ok(())
+}
+
+#[test]
+fn non_list_layers_is_still_an_error() -> TestResult {
+    for value in [json!("x"), json!({})] {
+        let manifest = json!({"version": 1, "ok": true, "layers": value});
+        assert_eq!(failure(&bare(&manifest))?, "the R result's layers must be a list");
+    }
     Ok(())
 }

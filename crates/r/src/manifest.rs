@@ -54,8 +54,9 @@ fn convert_manifest(out: &RExecutionOutput, rows_of: &dyn Fn(&str) -> Option<Vec
         Some(_) => return Err("the R result's layers must be a list".into()),
     };
     let selection = manifest.get("selection").filter(|s| !s.is_null());
-    if layers.is_empty() == selection.is_none() {
-        return Err("the R result must list layers or a selection, not both and not neither".into());
+    // Neither is valid: a script that only prints ends with an empty output and its messages.
+    if !layers.is_empty() && selection.is_some() {
+        return Err("the R result must list layers or a selection, not both".into());
     }
     let mut messages = convert_messages(manifest.get("messages"))?;
 
