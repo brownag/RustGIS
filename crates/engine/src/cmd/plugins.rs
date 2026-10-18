@@ -331,7 +331,8 @@ pub fn is_r_tool(tool: &str) -> bool {
     t.get(..R_TOOL_PREFIX.len()).is_some_and(|p| p.eq_ignore_ascii_case(R_TOOL_PREFIX))
 }
 
-/// Whether running `id` with `params` runs R code: `gp.runR`, or `gp.run` with an R tool.
+/// Whether running `id` with `params` runs R code: `gp.runR`, or `gp.run` with an R tool. The one
+/// answer to "is this an R run"; every site that asks calls it.
 pub fn runs_r(id: &str, params: &Value) -> bool {
     id.eq_ignore_ascii_case("gp.runR")
         || (id.eq_ignore_ascii_case("gp.run") && params.get("tool").and_then(Value::as_str).is_some_and(is_r_tool))

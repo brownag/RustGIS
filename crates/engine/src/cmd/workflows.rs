@@ -363,13 +363,13 @@ fn run_steps(s: &mut Session, model: Model) -> CmdResult {
     }
     // A model that came in a file (an opened project, or an imported tool) may not touch files or run R.
     if !s.trusted_models.contains(&model.name.to_ascii_lowercase())
-        && let Some((i, st)) = model
+        && let Some((i, st, is_r)) = model
             .steps
             .iter()
             .enumerate()
-            .find(|(_, st)| super::plugins::is_r_tool(&st.tool) || super::items::touches_files("gp.run", &st.params))
+            .map(|(i, st)| (i, st, super::plugins::runs_r("gp.run", &json!({"tool": st.tool}))))
+            .find(|(_, st, is_r)| *is_r || super::items::touches_files("gp.run", &st.params))
     {
-        let is_r = super::plugins::is_r_tool(&st.tool);
         let reason = if is_r { "runs R code" } else { "reads or writes files" };
         return Err(format!(
             "step {} ({}) {reason}, which a model from a file can't do; make a new model with that step to run it",
