@@ -1,6 +1,7 @@
 //! The R script runner: the script and data model, the [`RScriptRunner`] trait, and the runners.
 //! Native builds run a script with the `Rscript` program in a fresh job folder (`native.rs`). The
-//! browser runner refuses every script until webR is wired up (`web.rs`).
+//! browser has no runner yet: it refuses every script until webR is wired up (P6), through the
+//! `Services::r_run` hook in `crates/ui-egui/src/lib.rs`.
 
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 

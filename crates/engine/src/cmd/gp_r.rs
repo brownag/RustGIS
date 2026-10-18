@@ -21,7 +21,8 @@ pub fn commands() -> Vec<C> {
     ]
 }
 
-/// The browser's R job, taken by the web app's placeholder runner (see [`r_start`]).
+/// The browser's R job, for the `Services::r_run` hook (see [`r_start`]). The web app leaves that
+/// hook `None` until webR (P6) is wired in.
 pub struct RRun {
     pub input: rustgis_r::RExecutionInput,
 }

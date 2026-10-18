@@ -219,8 +219,8 @@ pub struct Services {
     /// lines in the slot. The desktop app runs tools through the `geolibre` program instead.
     pub geolibre_run: Option<Box<dyn Fn(rustgis_engine::cmd::gp::ExternalRun, Slot<rustgis_engine::cmd::gp::ExternalOutput>)>>,
     /// The browser's R runner: runs one `gp.runR` job and puts the output JSON (or the error) in
-    /// the slot. The web app's is a placeholder that refuses until webR is wired up; the desktop
-    /// runs R inline.
+    /// the slot. The web app leaves it `None` until webR is wired up (P6), so browser R runs
+    /// refuse; the desktop runs R inline.
     #[cfg(feature = "r")]
     pub r_run: Option<Box<dyn Fn(rustgis_engine::cmd::gp::RRun, Slot<Result<serde_json::Value, String>>)>>,
     /// Downloads a URL into the slot (the browser's fetch; the desktop downloads on a thread).
