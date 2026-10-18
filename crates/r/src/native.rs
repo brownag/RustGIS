@@ -133,12 +133,16 @@ fn read_log_tail(path: &Path) -> std::io::Result<String> {
     Ok(text.split_once('\n').map_or(String::new(), |(_, rest)| rest.to_string()))
 }
 
+/// The most bytes a script's output folder may hold in all: 512 MB natively.
+const MAX_TOTAL_BYTES: u64 = 512 * 1024 * 1024;
+
 /// The plain files in `out`, read back as `out/<name>` and sorted by path. Folders and symlinks
-/// are skipped, never followed or counted. More than `MAX_FILES` files, or a file over
-/// `MAX_FILE_BYTES`, is an error.
+/// are skipped, never followed or counted. More than `MAX_FILES` files, a file over
+/// `MAX_FILE_BYTES`, or more than `MAX_TOTAL_BYTES` in all, is an error. Sizes are summed before
+/// any file is read.
 pub(crate) fn collect_outputs(out: &Path) -> Result<Vec<RFile>, String> {
     let read_err = |e: std::io::Error| format!("can't read the script's output: {e}");
-    let mut files = Vec::new();
+    let mut found = Vec::new();
     let mut total: u64 = 0;
     for entry in std::fs::read_dir(out).map_err(read_err)? {
         let entry = entry.map_err(read_err)?;
@@ -147,22 +151,26 @@ pub(crate) fn collect_outputs(out: &Path) -> Result<Vec<RFile>, String> {
         if !meta.file_type().is_file() {
             continue;
         }
-        if files.len() >= MAX_FILES {
+        if found.len() >= MAX_FILES {
             return Err(format!("a script may write at most {MAX_FILES} files"));
         }
         if meta.len() > MAX_FILE_BYTES as u64 {
             return Err(format!("a script's output file is larger than the {MAX_FILE_BYTES}-byte limit"));
         }
+        total = total.saturating_add(meta.len());
+        if total > MAX_TOTAL_BYTES {
+            return Err("a script's output is larger than the total limit".into());
+        }
+        found.push((path, entry.file_name()));
+    }
+    let mut files = Vec::new();
+    for (path, name) in found {
         let mut data = Vec::new();
         File::open(&path).map_err(read_err)?.take(MAX_FILE_BYTES as u64 + 1).read_to_end(&mut data).map_err(read_err)?;
         if data.len() > MAX_FILE_BYTES {
             return Err(format!("a script's output file is larger than the {MAX_FILE_BYTES}-byte limit"));
         }
-        total = total.saturating_add(data.len() as u64);
-        if total > MAX_FILES as u64 * MAX_FILE_BYTES as u64 {
-            return Err("a script's output is larger than the total limit".into());
-        }
-        let name = entry.file_name().to_string_lossy().into_owned();
+        let name = name.to_string_lossy().into_owned();
         files.push(RFile { path: format!("out/{name}"), data });
     }
     files.sort_by(|a, b| a.path.cmp(&b.path));

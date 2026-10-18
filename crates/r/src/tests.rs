@@ -122,6 +122,20 @@ fn collect_outputs_refuses_too_many_and_oversize_files() -> TestResult {
     Ok(())
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn collect_outputs_refuses_a_total_over_the_limit() -> TestResult {
+    let dir = CapsDir::new("total")?;
+    for name in ["a.bin", "b.bin"] {
+        std::fs::File::create(dir.out().join(name))?.set_len(300 << 20)?;
+    }
+    let Err(err) = crate::native::collect_outputs(&dir.out()) else {
+        return Err("expected the total over the limit to be refused".into());
+    };
+    assert!(err.contains("total limit"), "{err}");
+    Ok(())
+}
+
 #[cfg(all(not(target_arch = "wasm32"), unix))]
 #[test]
 fn collect_outputs_skips_folders_and_symlinks() -> TestResult {
