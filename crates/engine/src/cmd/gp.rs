@@ -369,11 +369,7 @@ pub fn plugin_abandon(s: &mut Session, id: u64) {
 /// Finishes a run from [`plugin_start`] with what [`PluginRun::run`] returned: `gp.finish
 /// {"id"}` then applies it like `gp.run` would, with undo and history.
 pub fn plugin_complete(s: &mut Session, id: u64, result: Result<rustgis_analysis::ToolResult, String>) -> Result<(), String> {
-    let i = s
-        .plugin_runs
-        .iter()
-        .position(|r| r.id == id)
-        .ok_or_else(|| format!("the tool's run was dropped ({DROPPED_RUN_WHY})"))?;
+    let i = s.plugin_runs.iter().position(|r| r.id == id).ok_or_else(|| format!("the tool's run was dropped ({DROPPED_RUN_WHY})"))?;
     let run = s.plugin_runs.remove(i);
     let mut result = result;
     fit_to_changes(s, &mut result, &run.name, &run.read);

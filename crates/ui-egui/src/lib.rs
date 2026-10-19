@@ -1367,7 +1367,8 @@ impl RustGisApp {
         });
         if let Err(e) = spawned {
             // The thread never started: the run fails through the same path as a failed one.
-            *slot.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(Err(rustgis_engine::r::RRunnerError::Failed(e.to_string())));
+            *slot.lock().unwrap_or_else(std::sync::PoisonError::into_inner) =
+                Some(Err(rustgis_engine::r::RRunnerError::Failed(e.to_string())));
         }
         self.r_job = Some((id, slot));
     }
