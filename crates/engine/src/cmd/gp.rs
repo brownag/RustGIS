@@ -66,10 +66,18 @@ pub struct RRun {
 #[cfg(feature = "r")]
 const MAX_R_SCRIPT: usize = 1 << 20;
 
-/// Checks `gp.runR` parameters: a non-empty `script` (at most 1 MB), `inputs` as layer names
-/// that exist on the map (their data is not sent yet), and `args` as an object.
+/// The checked parameters of a `gp.runR` run (see [`r_params`]).
 #[cfg(feature = "r")]
-pub fn r_start(s: &Session, params: &Value) -> Result<RRun, String> {
+pub struct RParams {
+    pub script: String,
+    pub inputs: Vec<String>,
+    pub args: Value,
+}
+
+/// Checks `gp.runR` parameters: a non-empty `script` (at most 1 MB), `inputs` as a list of layer
+/// names, and `args` as an object. It stages and queues nothing.
+#[cfg(feature = "r")]
+pub fn r_params(params: &Value) -> Result<RParams, String> {
     let script = ps(params, "script").map(str::trim).filter(|x| !x.is_empty()).ok_or("the R script is required")?;
     if script.len() > MAX_R_SCRIPT {
         return Err("the R script is over 1 MB".into());
@@ -79,38 +87,75 @@ pub fn r_start(s: &Session, params: &Value) -> Result<RRun, String> {
         Some(Value::Array(a)) => a.as_slice(),
         Some(_) => return Err("inputs must be a list of layer names".into()),
     };
-    let mut layers = Vec::with_capacity(names.len());
+    let mut inputs = Vec::with_capacity(names.len());
     for name in names {
-        let name = name.as_str().ok_or("inputs must be a list of layer names")?;
-        let layer = s.map().layer_by_name(name).ok_or_else(|| format!("no layer named '{name}'"))?;
-        layers.push(rustgis_r::RLayerInput {
-            name: layer.name.clone(),
-            format: "placeholder".into(),
-            data: Vec::new(),
-            ..Default::default()
-        });
+        inputs.push(name.as_str().ok_or("inputs must be a list of layer names")?.to_string());
     }
     let args = match params.get("args") {
         None | Some(Value::Null) => json!({}),
         Some(v @ Value::Object(_)) => v.clone(),
         Some(_) => return Err("args must be an object".into()),
     };
-    Ok(RRun { input: rustgis_r::RExecutionInput { script: script.to_string(), layers, args, ..Default::default() } })
+    Ok(RParams { script: script.to_string(), inputs, args })
+}
+
+/// Stages a `gp.runR` run's inputs from the map (read only) and queues it. Returns the run when
+/// no R run is under way, so the host launches it; otherwise the run waits its turn and this
+/// returns `None`.
+#[cfg(feature = "r")]
+pub fn r_start(s: &mut Session, params: &Value) -> Result<Option<RRunStart>, String> {
+    let p = r_params(params)?;
+    let (layers, rows) = {
+        let inputs = map_inputs(s, None, &json!(p.inputs))?;
+        let mut layers = Vec::with_capacity(p.inputs.len());
+        let mut rows = Vec::new();
+        for name in &p.inputs {
+            let layer = s.map().layer_by_name(name).ok_or_else(|| format!("no layer named '{name}'"))?;
+            if layer.is_raster() {
+                let raster = inputs.raster(name).ok_or_else(|| format!("layer '{name}' has no raster data"))?;
+                layers.push(rustgis_r::stage::stage_raster(name, raster.embedded, raster.raster)?);
+            } else {
+                let ds = inputs.dataset(name).ok_or_else(|| format!("no layer named '{name}'"))?;
+                layers.push(rustgis_r::stage::stage_dataset(ds, inputs.selection(name))?);
+                rows.push((name.clone(), ds.features.len()));
+            }
+        }
+        (layers, rows)
+    };
+    let queued = s.started.iter().filter(|(_, job, ..)| matches!(job, ExternalJob::R(_))).count();
+    if queued >= MAX_ASYNC_RUNS {
+        return Err("too many R scripts are waiting".into());
+    }
+    s.next_pending = s.next_pending.wrapping_add(1);
+    let id = s.next_pending;
+    let input = rustgis_r::RExecutionInput { script: p.script, layers, args: p.args, ..Default::default() };
+    let start = if s.r_running.is_none() {
+        s.r_running = Some(id);
+        Some(RRunStart { id, input: input.clone() })
+    } else {
+        None
+    };
+    s.started.push((id, ExternalJob::R(RJob { input, rows }), params.clone(), now_ms()));
+    trim_started(s);
+    Ok(start)
 }
 
 /// Runs an R script: natively through the R runner; in the browser the app's R service runs it
-/// (not wired here yet), so this only checks the parameters.
+/// (not wired here yet), so this only checks the parameters and the input names.
 #[cfg(feature = "r")]
 fn run_r(s: &mut Session, p: &Value) -> CmdResult {
-    let run = r_start(s, p)?;
+    let params = r_params(p)?;
+    for name in &params.inputs {
+        s.map().layer_by_name(name).ok_or_else(|| format!("no layer named '{name}'"))?;
+    }
     #[cfg(not(target_arch = "wasm32"))]
     {
-        let out = rustgis_r::default_runner().run(&run.input, &|_| {}).map_err(|e| e.to_string())?;
+        let input = rustgis_r::RExecutionInput { script: params.script, args: params.args, ..Default::default() };
+        let out = rustgis_r::default_runner().run(&input, &|_| {}).map_err(|e| e.to_string())?;
         serde_json::to_value(out).map_err(|e| e.to_string())
     }
     #[cfg(target_arch = "wasm32")]
     {
-        let _ = run;
         Err("gp.runR runs through the app's R service in the browser".into())
     }
 }
@@ -233,9 +278,45 @@ pub fn external_load_manifests(json: &str) -> Result<usize, String> {
 const MAX_ASYNC_RUNS: usize = 8;
 
 /// The job behind an asynchronous run, kept until its runner's output comes back.
-#[cfg(feature = "geolibre")]
+#[cfg(any(feature = "geolibre", feature = "r"))]
 pub(crate) enum ExternalJob {
+    #[cfg(feature = "geolibre")]
     GeoLibre(rustgis_geolibre::Job),
+    #[cfg(feature = "r")]
+    R(RJob),
+}
+
+/// A staged R run waiting to start: its input, and the row count of each vector layer at staging
+/// (the bounds for the rows the script returns).
+#[cfg(feature = "r")]
+pub(crate) struct RJob {
+    pub(crate) input: rustgis_r::RExecutionInput,
+    pub(crate) rows: Vec<(String, usize)>,
+}
+
+/// An R run the host launches now (see [`r_start`]). The engine never runs R itself: the host
+/// runs `input` and reports the result with `id`.
+#[cfg(feature = "r")]
+#[derive(Clone, Debug)]
+pub struct RRunStart {
+    pub id: u64,
+    pub input: rustgis_r::RExecutionInput,
+}
+
+/// Drops the oldest started run once the queue is over `MAX_ASYNC_RUNS`, never the R run under
+/// way (`r_running`).
+#[cfg(any(feature = "geolibre", feature = "r"))]
+fn trim_started(s: &mut Session) {
+    if s.started.len() <= MAX_ASYNC_RUNS {
+        return;
+    }
+    #[cfg(feature = "r")]
+    let running = s.r_running;
+    #[cfg(not(feature = "r"))]
+    let running: Option<u64> = None;
+    if let Some(i) = s.started.iter().position(|(n, ..)| Some(*n) != running) {
+        s.started.remove(i);
+    }
 }
 
 /// A GeoLibre run to carry out asynchronously (the browser's WASI runner): run `tool` with
@@ -267,9 +348,7 @@ pub fn external_start(s: &mut Session, tool: &str, params: &Value) -> Result<Ext
         let run = ExternalRun { id, tool: job.tool.clone(), argv: job.argv("/work"), files: job.files.clone() };
         s.started.push((id, ExternalJob::GeoLibre(job), params, now_ms()));
         // A run whose runner never answers is dropped eventually (it holds its input files).
-        if s.started.len() > MAX_ASYNC_RUNS {
-            s.started.remove(0);
-        }
+        trim_started(s);
         Ok(run)
     }
     #[cfg(not(feature = "geolibre"))]
@@ -287,9 +366,14 @@ pub fn external_complete(s: &mut Session, id: u64, ran: ExternalOutput) -> Resul
         let i = s
             .started
             .iter()
-            .position(|(n, ..)| *n == id)
+            .position(|(n, j, ..)| *n == id && matches!(j, ExternalJob::GeoLibre(_)))
             .ok_or("the tool's run was dropped (its project was closed, or too many runs were waiting)")?;
-        let (_, ExternalJob::GeoLibre(job), params, t0) = s.started.remove(i);
+        let (_, job, params, t0) = s.started.remove(i);
+        let job = match job {
+            ExternalJob::GeoLibre(job) => job,
+            #[cfg(feature = "r")]
+            ExternalJob::R(_) => return Err("the tool's run was dropped (its project was closed, or too many runs were waiting)".into()),
+        };
         // Reading the runner's files back parses outside `Session::run`'s guard: a bug in a
         // reader must not take the app down.
         let result = ran.map_err(|e| format!("{}: {e}", job.name)).and_then(|(files, lines)| {

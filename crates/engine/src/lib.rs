@@ -388,8 +388,10 @@ struct PutAside {
     /// Its work still under way (tool runs, downloads, plugin fetches, queries): the runs of
     /// the previous project mustn't land in the next one.
     pending: Vec<PendingRun>,
-    #[cfg(feature = "geolibre")]
+    #[cfg(any(feature = "geolibre", feature = "r"))]
     started: Vec<(u64, cmd::gp::ExternalJob, serde_json::Value, u64)>,
+    #[cfg(feature = "r")]
+    r_running: Option<u64>,
     plugin_runs: Vec<cmd::gp::StartedRun>,
     downloading: Vec<u64>,
     downloaded: Vec<(u64, Vec<u8>)>,
@@ -506,7 +508,7 @@ pub struct Session {
     pub(crate) next_pending: u64,
     /// Asynchronous runs started and not yet complete: (id, job, resolved params, start time).
     /// GeoLibre and R runs share this queue.
-    #[cfg(feature = "geolibre")]
+    #[cfg(any(feature = "geolibre", feature = "r"))]
     pub(crate) started: Vec<(u64, cmd::gp::ExternalJob, serde_json::Value, u64)>,
     /// Plugin tool runs started and not yet complete (`gp::plugin_start`).
     pub(crate) plugin_runs: Vec<cmd::gp::StartedRun>,
@@ -514,6 +516,9 @@ pub struct Session {
     /// them (it keeps nothing between calls). Not saved with the project: a plugin's state
     /// command reads what it needs from the map when the panel opens.
     pub plugin_panels: std::collections::BTreeMap<String, rustgis_plugins::PanelState>,
+    /// The R run the host is launching (its id), or `None` when no R run is under way.
+    #[cfg(feature = "r")]
+    pub(crate) r_running: Option<u64>,
     /// Data downloads of this project under way (Add Data › From URL), by id.
     downloading: Vec<u64>,
     /// Downloads that landed, waiting for `layer.addDownload`.
@@ -654,10 +659,12 @@ impl Session {
             history_projection: String::new(),
             pending: Vec::new(),
             next_pending: 0,
-            #[cfg(feature = "geolibre")]
+            #[cfg(any(feature = "geolibre", feature = "r"))]
             started: Vec::new(),
             plugin_runs: Vec::new(),
             plugin_panels: std::collections::BTreeMap::new(),
+            #[cfg(feature = "r")]
+            r_running: None,
             downloading: Vec::new(),
             downloaded: Vec::new(),
             url_requests: Vec::new(),
@@ -985,8 +992,10 @@ impl Session {
             path: self.path.clone(),
             model_run: self.model_run.take(),
             pending: take(&mut self.pending),
-            #[cfg(feature = "geolibre")]
+            #[cfg(any(feature = "geolibre", feature = "r"))]
             started: take(&mut self.started),
+            #[cfg(feature = "r")]
+            r_running: self.r_running.take(),
             plugin_runs: take(&mut self.plugin_runs),
             downloading: take(&mut self.downloading),
             downloaded: take(&mut self.downloaded),
@@ -1027,8 +1036,10 @@ impl Session {
             path,
             model_run,
             pending,
-            #[cfg(feature = "geolibre")]
+            #[cfg(any(feature = "geolibre", feature = "r"))]
             started,
+            #[cfg(feature = "r")]
+            r_running,
             plugin_runs,
             downloading,
             downloaded,
@@ -1050,9 +1061,13 @@ impl Session {
         (self.pending, self.plugin_runs, self.plugin_retries) = (pending, plugin_runs, plugin_retries);
         (self.downloading, self.downloaded, self.url_requests) = (downloading, downloaded, url_requests);
         self.trend_results = trend_results;
-        #[cfg(feature = "geolibre")]
+        #[cfg(any(feature = "geolibre", feature = "r"))]
         {
             self.started = started;
+        }
+        #[cfg(feature = "r")]
+        {
+            self.r_running = r_running;
         }
         #[cfg(not(target_arch = "wasm32"))]
         {
