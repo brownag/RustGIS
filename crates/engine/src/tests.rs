@@ -4713,6 +4713,7 @@ fn r_code_is_reserved_to_the_user() {
     s.project.models.push(crate::project::Model {
         name: "Kriging".into(),
         steps: vec![crate::project::ModelStep { tool: "r:x".into(), params: json!({}) }],
+        ..Default::default()
     });
     let e = s.run("model.run", &json!({"name": "Kriging"})).unwrap_err();
     assert!(e.contains("runs R code"), "{e}");

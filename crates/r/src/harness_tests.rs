@@ -60,6 +60,7 @@ fn point_dataset() -> Dataset {
         fields: vec![Field { name: "name".into(), ty: FieldType::Text, alias: None }],
         features,
         source: None,
+        crs: None,
         windowed: false,
     }
 }
@@ -78,6 +79,7 @@ fn five_row_table() -> Dataset {
         fields: vec![Field { name: "name".into(), ty: FieldType::Text, alias: None }],
         features,
         source: None,
+        crs: None,
         windowed: false,
     }
 }

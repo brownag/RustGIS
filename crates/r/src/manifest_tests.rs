@@ -215,7 +215,7 @@ fn layer_path_and_format_rules() -> TestResult {
 fn coordinates_must_be_lon_lat() -> TestResult {
     for x in [f64::NAN, f64::INFINITY, 200.0] {
         let mut ds = cities();
-        ds.features = vec![Feature { id: 1, geometry: Some(Geometry::Point(Coord { x, y: 2.0 })), attrs: vec![] }];
+        ds.features = vec![Feature { id: 1, geometry: Some(Geometry::Point(Coord { x, y: 2.0 })), attrs: vec![] }].into();
         assert!(check_coords("Bad", &ds).is_err(), "{x}");
     }
     assert!(check_coords("Good", &cities()).is_ok());

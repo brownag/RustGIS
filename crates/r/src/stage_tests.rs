@@ -21,6 +21,7 @@ fn point_dataset() -> Dataset {
         fields: vec![Field { name: "name".into(), ty: FieldType::Text, alias: None }],
         features,
         source: None,
+        crs: None,
         windowed: false,
     }
 }
