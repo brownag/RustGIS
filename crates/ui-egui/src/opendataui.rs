@@ -627,7 +627,8 @@ pub fn dialog(app: &mut RustGisApp, ui: &mut egui::Ui) {
     }
     match act {
         Some(Act::Details(i)) => {
-            if !st.open.remove(&i) {
+            let was_open = st.open.remove(&i);
+            if !was_open {
                 st.open.insert(i);
             }
         }
